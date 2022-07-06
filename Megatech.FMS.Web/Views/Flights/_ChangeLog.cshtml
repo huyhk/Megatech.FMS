@@ -1,0 +1,11 @@
+﻿@model IEnumerable<FMS.Data.ChangeLog>
+@{
+    Layout = null;
+}
+@foreach (var item in Model)
+{
+    <li>
+        @item.EntityDisplay <span class="bold">@item.KeyValues: @item.UserUpdatedName</span> đã thay đổi <span class="bold">@item.PropertyName</span> từ <span class="bold">@item.OldValues</span> thành <span class="bold">@item.NewValues</span> vào lúc <span class="bold">@item.DateChanged.ToString("HH:mm:ss dd/MM/yyyy")</span>
+    </li>
+}
+

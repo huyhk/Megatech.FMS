@@ -1,0 +1,153 @@
+﻿@model FMS.Data.RefuelItem
+@{
+    ViewBag.Title = "Sửa";
+}
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    <div class="form-horizontal">
+        <h4>Hút nhiên liệu</h4>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        @Html.HiddenFor(model => model.Id)
+        @Html.HiddenFor(model => model.FlightId)
+        @Html.HiddenFor(model => model.DeviceStartTime)
+        @Html.HiddenFor(model => model.DeviceEndTime)
+        @Html.HiddenFor(model => model.EndNumber)
+        @Html.HiddenFor(model => model.StartNumber)
+        @Html.HiddenFor(model => model.Status)
+        @Html.HiddenFor(model => model.Price)
+        @Html.HiddenFor(model => model.TaxRate)
+        @Html.HiddenFor(model => model.Gallon)
+        @Html.HiddenFor(model => model.Temperature)
+        @Html.HiddenFor(model => model.Completed)
+        @Html.HiddenFor(model => model.Printed)
+        <div class="form-group">
+            @Html.Label("Xe", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownList("TruckId", null, htmlAttributes: new { @class = "form-control select2" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Lái xe", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownList("DriverId", null, htmlAttributes: new { @class = "form-control select2" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("NV thực hiện", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownList("OperatorId", null, htmlAttributes: new { @class = "form-control select2" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Thời gian bắt đầu", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.StartTime, new { htmlAttributes = new { @class = "form-control timepicker", @Value = Model.StartTime != null ? Model.StartTime.ToString("hh:mm tt") : "" } })
+                @Html.ValidationMessageFor(model => model.StartTime, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Thời gian kết thúc", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.EndTime, new { htmlAttributes = new { @class = "form-control timepicker", @Value = Model.EndTime != null ? Model.EndTime.Value.ToString("hh:mm tt") : "" } })
+                @Html.ValidationMessageFor(model => model.EndTime, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Số lượng Gallon", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Amount, new { htmlAttributes = new { @class = "form-control", @Value = Math.Round(Model.Amount) } })
+                @Html.ValidationMessageFor(model => model.Amount, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        @*<div class="form-group">
+                @Html.Label("Lít thực tế", htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.Volume, new { htmlAttributes = new { @class = "form-control", @Value = Math.Round(Model.Volume) } })
+                    @Html.ValidationMessageFor(model => model.Volume, "", new { @class = "text-danger" })
+                </div>
+            </div>*@
+        @*<div class="form-group">
+                @Html.Label("Số lượng kg", htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.Weight, new { htmlAttributes = new { @class = "form-control", @Value = Math.Round(Model.Weight) } })
+                    @Html.ValidationMessageFor(model => model.Weight, "", new { @class = "text-danger" })
+                </div>
+            </div>*@
+        <div class="form-group">
+            @Html.Label("Nhiệt độ", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.ManualTemperature, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.ManualTemperature, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Tỷ trọng", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Density, new { htmlAttributes = new { @class = "form-control", @Value = Model.Density.ToString("#,##0.0000") } })
+                @Html.ValidationMessageFor(model => model.Density, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Phiếu hóa nghiệm", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.QCNo, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.QCNo, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input id="btn_save" type="submit" value="Lưu" class="btn btn-primary" />
+            </div>
+        </div>
+    </div>
+}
+<div>
+    @Html.ActionLink("Quay về danh sách", "Extract")
+</div>
+
+@section Scripts {
+    @*@Scripts.Render("~/bundles/jqueryval")*@
+    <script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+
+    <script>
+        $(function () {
+            $(".select2").select2();
+            $('.timepicker').timepicker({
+                showInputs: false,
+                showMeridian: false
+            })
+        })
+
+        $('#btn_save').click(function () {
+            var regex = /^(\d*\.?\d*)$/;
+
+            var amount = $('#Amount');
+            if (!regex.test(amount.val()) || amount.val() == "") {
+                alert("Số lượng Gallon phải là kiểu số");
+                amount.val(0);
+                return false;
+            }
+
+            var manualTemperature = $('#ManualTemperature');
+            if (!regex.test(manualTemperature.val()) || manualTemperature.val() == "") {
+                alert("Nhiệt độ phải là kiểu số");
+                manualTemperature.val(0);
+                return false;
+            }
+
+            var density = $('#Density');
+            if (!regex.test(density.val()) || density.val() == "") {
+                alert("Tỷ trọng phải là kiểu số");
+                density.val(0);
+                return false;
+            }
+
+        });
+    </script>
+
+}
+

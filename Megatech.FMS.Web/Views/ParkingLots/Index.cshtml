@@ -1,0 +1,122 @@
+﻿
+@model IEnumerable<FMS.Data.ParkingLot>
+
+@{
+    ViewBag.Title = "Bãi đỗ";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Bãi đỗ" }
+    );
+
+    var select_val = "";
+    if (Request["a"] != null)
+    {
+        select_val = Request["a"];
+    }
+    var airports = (List<Airport>)ViewBag.Airports;
+    var selectList = new SelectList(airports, "Id", "Name", select_val);
+    var changeLogs = (List<ChangeLog>)ViewBag.ChangeLogs;
+}
+
+
+<div class="box">
+    @Html.Partial("_ChangeLog", changeLogs)
+    <div class="box-header">
+        @if (!User.IsInRole("Quản lý tổng công ty"))
+        {
+            <a class="btn btn-primary pull-right" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+        }
+
+        <div class="col-md-6 pull-right">
+            @Html.DropDownList("airport",
+                    selectList,
+                    "Chọn sân bay",
+                    new { @class = "form-control select2", onchange="change" })
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table">
+            <tr>
+                <th>
+                    Sân bay
+                </th>
+                <th>
+                    Bãi đỗ
+                </th>
+                <th>
+                    Bến đỗ
+                </th>
+                <th>Thao tác</th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @(item.Airport != null? item.Airport.Name: "")
+                    </td>
+                    <td>
+                        @item.Code
+                    </td>
+                    <td>
+                        @item.Name
+                    </td>
+
+                    <td>
+                        @if (!User.IsInRole("Quản lý tổng công ty"))
+                        {
+                            <a href="@Url.Action("Edit", new { id = item.Id})">
+                                Sửa |
+                            </a>
+                            <a onclick="jdelete(@item.Id)" class="pointer">
+                                Xóa
+                            </a>
+                        }
+                    </td>
+                </tr>
+            }
+
+        </table>
+    </div>
+    <div class="box-footer">
+        @Html.Partial("Pager", (PagingViewModel)ViewBag.PageModel)
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script>
+        $(function () {
+            $(".select2").select2();
+            $('.select2').on('select2:select', function (e) {
+                var data = e.params.data;
+
+                change(data);
+            });
+        })
+        function change(data)
+        {
+            var val = data.id;
+            window.location = "@Url.Action("index")" + "?a=" + val;
+        }
+        function jdelete(id) {
+            if (confirm("Bạn chắc chắn muốn xóa bãi đổ này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDelete")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            window.location.reload();
+                        }
+                    },
+                });
+            }
+            return false;
+        }
+    </script>
+}

@@ -1,0 +1,92 @@
+﻿
+@{
+    ViewBag.Title = "Nhập dữ liệu kế hoạch bay";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Kế hoạch bay", Url = Url.Action("Index") },
+        new BreadcrumbItem { Text = "Nhập dữ liệu" }
+    );
+}
+<link href="~/admin-lte2.4/plugins/iCheck/minimal/_all.css" rel="stylesheet" />
+
+<div class="box">
+    <div class="box header"></div>
+    <div class="box-body">
+        @using (Html.BeginForm("BeforeImport", "Flights", FormMethod.Post, new { enctype = "multipart/form-data", role = "form" }))
+        {
+        <div class="form-group">
+            @Html.Label("Chuẩn file dữ liệu", htmlAttributes: new { @class = "control-label" }) <br />
+            @*<input type="radio" name="fileType" class="minimal" checked /> Miền Nam
+        <input type="radio" name="fileType" class="minimal" disabled /> Miền Bắc
+        <input type="radio" name="fileType" class="minimal" disabled /> Miền Trung*@
+            <div style="display:none">
+                <input type="radio" name="fileMode" class="minimal" value="Mode1" /> Chuẩn 1 <a href="/importv1.xlsx" rel="nofollow">(Xem mẫu)</a>
+                <input type="radio" name="fileMode" class="minimal" value="Mode2" /> Chuẩn 2 <a href="/importv2.xlsx" rel="nofollow">(Xem mẫu)</a>
+            </div>
+            <input type="radio" name="fileMode" class="minimal" value="Mode5" /> Miền Bắc <a href="/importv5.xlsx" rel="nofollow">(Xem mẫu)</a>
+            <input type="radio" name="fileMode" class="minimal" value="Mode3" /> Miền Trung <a href="/importv3.xlsx" rel="nofollow">(Xem mẫu)</a>
+            <input type="radio" name="fileMode" class="minimal" value="Mode4" /> Miền Nam <a href="/importv4.xlsx" rel="nofollow">(Xem mẫu)</a>
+            <input type="radio" name="fileMode" class="minimal" value="Mode6" /> QT25 <a href="/qt25.xlsx" rel="nofollow">(Xem mẫu)</a>
+        </div>
+            <div class="form-group">
+                <label class="control-label">Mã loại trừ (cách nhau dấu ",")</label><br />
+                <input type="text" name="exCode" style="width: 225px" />
+            </div>
+            <div class="form-group">
+                <label class="control-label">Lập kế hoạch cho ngày:</label><br />
+                <div class="input-group">
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                    <input type="text" id="SetPlanDay" name="SetPlanDay" class="datepicker" value="@DateTime.Now.ToString("dd/MM/yyyy")">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label">Chọn file dữ liệu</label>
+                <input type="file" name="fileImport" id="fileImport" />
+            </div>
+            <div class="form-group">
+                <a href="@Url.Action("Index")" class="btn btn-default">Trở về</a>
+                <input type="submit" value="Nhập dữ liệu" class="btn btn-primary" />
+            </div>
+        }
+
+    </div>
+</div>
+
+
+
+@section Scripts {
+    @*@Scripts.Render("~/bundles/jqueryval")*@
+    <script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>
+    <script src="~/admin-lte2.4/plugins/iCheck/icheck.js"></script>
+    <script>
+        $(function () {
+            $('input[type="checkbox"].minimal, input[type="radio"].minimal').iCheck({
+                checkboxClass: 'icheckbox_minimal-blue',
+                radioClass: 'iradio_minimal-blue'
+            })
+
+            $(".datepicker").datepicker({ format: "dd/mm/yyyy", autoclose: true });
+
+            $('.timepicker').timepicker({
+                showInputs: false,
+                showMeridian: false
+            })
+
+            $('input[type="submit"]').click(function () {
+                if (!$('input[name="fileMode"]:checked').val()) {
+                    alert('Vui lòng chọn chuẩn file dữ liệu cần import.');
+                    return false;
+                }
+                if ($('input[type="file"]').val() == '') {
+                    alert('Vui lòng chọn file dữ liệu cần import.');
+                    return false;
+                }
+            })
+        })
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+}

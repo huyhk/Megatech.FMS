@@ -1,0 +1,90 @@
+﻿<ul class="sidebar-menu" data-widget="tree">
+    <li class="treeview">
+        <a href="#">
+            <i class="fa fa-th"></i> <span>Danh mục</span>
+            <span class="pull-right-container">
+                <i class="fa fa-angle-left pull-right"></i>
+            </span>
+        </a>
+        <ul class="treeview-menu">
+            @if (User.IsInRole("Aministrators") || User.IsInRole("Super Admin") || User.IsInRole("Quản lý tổng công ty"))
+            {
+                <li><a href="@Url.Action("Index","Airports")"><i class="fa fa-flag"></i> Sân bay</a></li>
+                <li><a href="@Url.Action("Index","ParkingLots")"><i class="fa fa-align-center"></i> Bãi đỗ</a></li>
+                <li><a href="@Url.Action("Index","Airlines")"><i class="fa fa-address-card"></i> Hãng bay</a></li>
+                <li><a href="@Url.Action("Index","Aircrafts")"><i class="fa fa-plane"></i> Tàu bay</a></li>
+                <li><a href="@Url.Action("Index","Trucks")"><i class="fa fa-truck"></i> Xe tra nạp</a></li>
+                <li><a href="@Url.Action("Index","Products")"><i class="fa fa-product-hunt"></i> Sản phẩm</a></li>
+                <li><a href="@Url.Action("Index","ProductPrices")"><i class="fa fa-dollar"></i> Giá nguyên liệu</a></li>
+            }
+            else
+            {
+                <li><a href="@Url.Action("Index","ParkingLots")"><i class="fa fa-align-center"></i> Bãi đỗ</a></li>
+                <li><a href="@Url.Action("Index","Trucks")"><i class="fa fa-truck"></i> Xe tra nạp</a></li>
+            }
+        </ul>
+    </li>
+
+    <li class="treeview">
+        <a href="#">
+            <i class="fa fa-battery"></i> <span>Kế hoạch tra nạp</span>
+            <span class="pull-right-container">
+                <i class="fa fa-angle-left pull-right"></i>
+            </span>
+        </a>
+        <ul class="treeview-menu">
+            @*<li><a href="@Url.Action("Index","Flights")"><i class="fa fa-paper-plane"></i> Kế hoạch bay</a></li>*@
+            <li><a href="@Url.Action("Index","Flights")"><i class="fa fa-paper-plane"></i>Danh sách</a></li>
+            @*<li>
+                    <a href="@Url.Action("RefuelHistory","Flights")">
+                        <i class="fa fa-history"></i>
+                        <span>Lịch sử tra nạp</span>
+                    </a>
+                </li>*@
+        </ul>
+    </li>
+    <li class="treeview ">
+        <a href="#">
+            <i class="fa fa-bar-chart"></i> <span> Báo cáo</span>
+            <span class="pull-right-container">
+                <i class="fa fa-angle-left pull-right"></i>
+            </span>
+        </a>
+        <ul class="treeview-menu">
+            <li><a href="@Url.Action("RefuelHistory","Flights")"><i class="fa fa-history"></i>Danh sách</a></li>
+        </ul>
+    </li>
+    @if (User.IsInRole("Aministrators") || User.IsInRole("Super Admin") || User.IsInRole("Quản lý tổng công ty"))
+    {
+        <li class="treeview">
+            <a href="#">
+                <i class="fa fa-th"></i> <span>Hệ thống</span>
+                <span class="pull-right-container">
+                    <i class="fa fa-angle-left pull-right"></i>
+                </span>
+            </a>
+            <ul class="treeview-menu">
+                <li> <a href="@Url.Action("Index","Users")"><i class="fa fa-user"></i> Người dùng</a></li>
+                <li><a href="@Url.Action("Index","Roles")"><i class="fa fa-users"></i> Nhóm người dùng</a></li>
+                <li><a href="@Url.Action("Index","Shifts")"><i class="fa fa-clock-o"></i> Quản lý ca</a></li>
+                <li><a href="@Url.Action("Index","TruckAssigns")"><i class="fa fa-truck"></i> Phân công xe</a></li>
+            </ul>
+        </li>
+    }
+    else
+    {
+        <li class="treeview">
+            <a href="#">
+                <i class="fa fa-th"></i> <span>Hệ thống</span>
+                <span class="pull-right-container">
+                    <i class="fa fa-angle-left pull-right"></i>
+                </span>
+            </a>
+            <ul class="treeview-menu">
+                <li> <a href="@Url.Action("Index","Users")"><i class="fa fa-user"></i> Người dùng</a></li>
+                <li><a href="@Url.Action("Index","Shifts")"><i class="fa fa-clock-o"></i> Quản lý ca</a></li>
+                <li><a href="@Url.Action("Index","TruckAssigns")"><i class="fa fa-truck"></i> Phân công xe</a></li>
+            </ul>
+        </li>
+    }
+</ul>

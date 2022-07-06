@@ -1,0 +1,129 @@
+﻿@model IEnumerable<FMS.Data.Shift>
+
+@{
+    ViewBag.Title = "Quản lý ca";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Quản lý ca" }
+    );
+
+    var airports = (List<Airport>)ViewBag.Airports;
+    var selectList = new SelectList(airports, "Id", "Code");
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+    var changeLogs = (List<ChangeLog>)ViewBag.ChangeLogs;
+}
+
+<div class="box">
+    @Html.Partial("_ChangeLog", changeLogs)
+    <div class="box-header">
+        @if (!viewOnly)
+        {
+            <a class="btn btn-primary pull-right" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+        }
+
+        <div class="col-md-6 pull-right">
+            @Html.DropDownList("airport",
+                    selectList,
+                    "Chọn sân bay",
+                    new { @class = "form-control select2", onchange = "change" })
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered">
+            <tr>
+                <th>
+                    Sân bay
+                </th>
+                <th>
+                    Mã
+                </th>
+                <th>
+                    Tên
+                </th>
+                <th>
+                    Giờ bắt đầu
+                </th>
+                <th>
+                    Giờ kết thúc
+                </th>
+
+                <th></th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Airport.Code)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Code)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Name)
+                    </td>
+                    <td>
+                        @item.StartTime.ToString("HH:mm")
+                    </td>
+                    <td>
+                        @item.EndTime.ToString("HH:mm")
+                    </td>
+
+
+                    <td>
+                        @if (!viewOnly)
+                        {
+                            <a href="@Url.Action("Edit", new { id = item.Id})">
+                                Sửa |
+                            </a>
+                            <a onclick="jdelete(@item.Id)" class="pointer">
+                                Xóa
+                            </a>
+                        }
+
+                    </td>
+                </tr>
+            }
+
+        </table>
+    </div>
+    <div class="box-footer"></div>
+</div>
+
+
+
+@section Scripts
+{
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script>
+        $(function () {
+            $(".select2").select2();
+            $('.select2').on('select2:select', function (e) {
+                var data = e.params.data;
+                change(data);
+            });
+        })
+        function change(data) {
+            var val = data.id;
+            window.location = "@Url.Action("index")" + "?aId=" + val;
+        }
+         function jdelete(id) {
+            if (confirm("Bạn chắc chắn muốn xóa ca này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDelete")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            window.location.reload();
+                        }
+                    },
+                });
+            }
+            return false;
+        }
+    </script>
+}

@@ -1,0 +1,751 @@
+﻿@model IEnumerable<FMS.Data.CheckTruck>
+
+@{
+    ViewBag.Title = "Phiếu bảo dưỡng hàng ngày";
+
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+        new BreadcrumbItem { Text = "Phiếu bảo dưỡng hàng ngày" }
+    );
+
+    var select_val = 0;
+    if (Request["a"] != null)
+    {
+        int.TryParse(Request["a"], out select_val);
+    }
+    var selectList = new SelectList(ViewBag.Airports, "Id", "Name", select_val);
+
+    var lstShift = new SelectList(ViewBag.Shifts, "Id", "Name");
+    var lstTruck = new SelectList(ViewBag.Trucks, "Id", "Code");
+
+    List<SelectListItem> lstResult = new List<SelectListItem>();
+    lstResult.Add(new SelectListItem() { Text = "KQ", Value = "" });
+    lstResult.Add(new SelectListItem() { Text = "S", Value = "S" });
+    lstResult.Add(new SelectListItem() { Text = "R", Value = "R" });
+    lstResult.Add(new SelectListItem() { Text = "A", Value = "A" });
+    lstResult.Add(new SelectListItem() { Text = "NA", Value = "NA" });
+    lstResult.Add(new SelectListItem() { Text = "GC", Value = "GC" });
+
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+
+    var startD = "moment()";
+    var endD = "moment()";
+    if (Request["daterange"] != null)
+    {
+        var ranges = Request["daterange"].Split('-');
+        startD = "moment('" + ranges[0] + "','DD/MM/YYYY')";
+        endD = "moment('" + ranges[1] + "','DD/MM/YYYY')";
+    }
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" />
+<div class="box">
+    <div class="box-header">
+        @if (!viewOnly)
+        {
+            <a class="btn btn-primary pull-right create-new" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+        }
+
+        <div class="div-filter row">
+            <div class="col-md-6 pull-left row">
+                <form method="get">
+                    @if (User.IsInRole("Administrators") || User.IsInRole("Super Admin") || viewOnly)
+                    {
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label>Chọn thời gian:</label>
+                                <div class="input-group">
+                                    <button type="button" class="btn btn-default pull-right" id="daterange">
+                                        <i class="fa fa-calendar"></i> <span>
+                                        </span>
+                                        <i class="fa fa-caret-down"></i>
+                                    </button>
+                                    <input type="hidden" name="daterange" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Chọn sân bay:</label>
+                                <div class="input-group">
+                                    @Html.DropDownList("a", selectList, "Tất cả", new { @class = "form-control", onchange = "change" })
+                                    <div class="input-group-btn">
+                                        <button type="submit" class="btn btn-info"><i class="fa fa-filter"></i> Lọc</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-md-10">
+                            <div class="form-group">
+                                <label>Chọn thời gian:</label>
+                                <div class="input-group">
+                                    <button type="button" class="btn btn-default pull-right" id="daterange">
+                                        <i class="fa fa-calendar"></i> <span>
+                                        </span>
+                                        <i class="fa fa-caret-down"></i>
+                                    </button>
+                                    <div class="input-group-btn">
+                                        <button type="submit" class="btn btn-info"><i class="fa fa-filter"></i> Lọc</button>
+                                    </div>
+                                    <input type="hidden" name="daterange" />
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered">
+            <tr>
+                <th>
+                    Giờ
+                </th>
+                <th>
+                    Ngày tháng
+                </th>
+                <th>
+                    Biển số xe
+                </th>
+                <th>
+                    Ca
+                </th>
+                <th>Thao tác</th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @item.DateCreated.ToString("HH:mm")
+                    </td>
+                    <td>
+                        @item.DateCreated.ToString("dd/MM/yyyy")
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Truck.Code)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Shift.Name)
+                    </td>
+                    <td>
+                        @if (viewOnly)
+                        {
+                            <a href="@Url.Action("Details", new { id = item.Id})">
+                                Chi tiết
+                            </a>  
+                        }
+                        else
+                        {
+                            <a href="@Url.Action("Edit", new { id = item.Id})">
+                                Sửa |
+                            </a>
+                            <a href="@Url.Action("Details", new { id = item.Id})">
+                                Chi tiết |
+                            </a>
+                            <a onclick="fdelete(@item.Id)" class="pointer">
+                                Xóa
+                            </a>
+                        }
+                    </td>
+                </tr>
+            }
+        </table>
+    </div>
+    @*<div class="box-footer">
+            @Html.Partial("Pager", (PagingViewModel)ViewBag.PageModel)
+        </div>*@
+</div>
+<div class="modal fade" id="modal-create">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Thêm phiếu bảo dưỡng hàng ngày mới</h4>
+            </div>
+            @using (Ajax.BeginForm("Create", "CheckTrucks", new AjaxOptions { OnSuccess = "closemodal", HttpMethod = "Post" }, new { autocomplete = "off" }))
+            {
+                @Html.AntiForgeryToken()
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="control-label">Ca làm việc</label>
+                    @Html.DropDownList("ShiftId", lstShift, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                </div>
+
+                <div class="form-group">
+                    <label class="control-label ">Biển số xe</label>
+                    @Html.DropDownList("TruckId", lstTruck, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                </div>
+                <div class="form-group">
+                    <label>Giờ :</label>
+                    <div class="input-group">
+                        <input class="form-control timepicker text-box single-line" data-val="true" data-val-date="The field Hours must be a date." id="Hours" name="Hours" type="datetime" value="">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Ngày :</label>
+                    <div class="input-group">
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                        <input type="text" id="DateCreated" class="form-control pull-right datepicker" value="@DateTime.Now.ToString("dd/MM/yyyy")">
+                        @Html.Hidden("DateCreated")
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Số giờ/km hoạt động của xe :</label>
+                    <div class="input-group">
+                        <input class="form-control text-box single-line" data-val="true" data-val-date="The field KmNumber must be a date." id="KmNumber" name="KmNumber" type="text" value="">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>1.Kiểm tra kẹp, dây, cuộn dây tiếp mát trước xe :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result1", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note1" name="Note1" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>2.Kiểm tra niêm phong override :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result2", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note2" name="Note2" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>3.Kiểm tra kẹp, dây, cuộn dây tiếp mát bên hông :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result3", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note3" name="Note3" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>4.Kiểm tra ống mềm hông xe, vòng đai bảo vệ ống, đầu coupler, khớp quay coupler, khớp nối, nắp chắn bụi :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result4", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note4" name="Note4" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>5.Thực hiện xả đáy xi téc :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result5", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note5" name="Note5" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>6.Thực hiện xả đáy lọc :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result6", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note6" name="Note6" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>7.Kiểm tra bề ngoài xe :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result7", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note7" name="Note7" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>8.Kiểm tra tình trạng lốp :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result8", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note8" name="Note8" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>9.Kiểm tra cò nạp trên cánh :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result9", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note9" name="Note9" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>10. Kiểm tra họng nhập đáy :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result10", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note10" name="Note10" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>11.Kiểm tra bình cứu hỏa :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result11", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note11" name="Note11" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>12.Kiểm tra mức dầu động cơ :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result12", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note12" name="Note12" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>13.Xả nước lọc nhiên liệu:</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result13", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note13" name="Note13" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>14.Kiểm tra nước làm mát :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result14", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note14" name="Note14" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>15.Kiểm tra mức dầu hộp số :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result15", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note15" name="Note15" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>16.Kiểm tra mức dầu hệ thống lái :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result16", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note16" name="Note16" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>17.Kiểm tra hoạt động, rò chảy qua khớp quay, ống mềm trên giàn nâng và đầu coupler :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result17", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note17" name="Note17" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>18.Kiểm tra tình trạng bình acquy, đầu cực acquy :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result18", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note18" name="Note18" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>19.Kiểm tra trạng thái và mức dầu thủy lực :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result19", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note19" name="Note19" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>20.Xả nước ở bình tích khí  :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result20", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note20" name="Note20" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>21.Vệ sinh bình lấy mẫu  :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result21", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note21" name="Note21" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>22.Kiểm tra chăn thấm dầu :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result22", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note22" name="Note22" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>23.Kiểm tra dụng cụ hóa nghiệm, thang gấp  :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result23", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note23" name="Note23" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>24.Vệ sinh cabin và ngoài xe :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result24", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note24" name="Note24" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <h3>Thực hiện nổ máy và bơm quẩn</h3>
+                <div class="form-group">
+                    <label>25.Kiểm tra động cơ :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result25", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note25" name="Note25" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>26.Kiểm tra tình trạng dây deadman, hoạt động của deadman :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result26", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note26" name="Note26" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>27.Kiểm tra hệ thống lái :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result27", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note27" name="Note27" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>28.Kiểm tra hoạt động của giản nâng (công tắc chống va chạm, khóa ngắt khẩn cấp) :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result28", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note28" name="Note28" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>29.Kiểm tra tầm nhìn của gương, còi xe, gạt mưa :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result29", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note29" name="Note29" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>30.Kiểm tra đèn tín hiệu, chiếu sáng, phanh và đèn xoay :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result30", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note30" name="Note30" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>31.Kiểm tra hệ thống phanh :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result31", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note31" name="Note31" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>32.Kiểm tra ít nhất một vị trí interlock trên xe :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result32", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note32" name="Note32" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>33.Kiểm tra hoạt động của các đồng hồ áp suất trên bảng điều khiển bên hông xe :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result33", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note33" name="Note33" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>34.Kiểm tra chênh áp bầu lọc và ghi lại thông tin :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result34", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note34" name="Note34" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>35.Kiểm tra lưu lượng kế :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result35", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note35" name="Note35" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>36.Kiểm tra hoạt động của bơm, dừng bơm khẩn cấp :</label>
+                    <div class="input-group">
+                        <div class="col-md-3">
+                            @Html.DropDownList("Result36", lstResult, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" id="Note36" name="Note36" class="form-control" placeholder="Ghi chú">
+                        </div>
+                    </div>
+                </div>
+            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary" onclick="changeDate()">Lưu</button>
+                </div>
+            }
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+@section Scripts {
+    <script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+   
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+
+   
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script>
+
+        function fdelete(id) {
+            if (confirm("Bạn chắc chắn muốn xóa chuyến bay này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDelete")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            window.location.reload();
+                        }
+                    },
+                });
+            }
+           return false;
+        }
+
+        function closemodal(data) {
+            if (data.result == "OK") {
+                $('#modal-create').modal('hide');
+                location.reload();
+            }
+            else
+                alert(data.message);
+        }
+
+        $(function () {
+            $(".select2").select2();
+            $('.timepicker').timepicker({
+                showInputs: false,
+                showMeridian: false
+            });
+            $(".datepicker").datepicker({ format: "dd/mm/yyyy", autoclose: true });
+
+            $(".create-new").click(function () {
+                $('#modal-create').modal('show');
+                return false;
+            });
+
+            //$("#chk-all").click(function () {
+            //    val = $(this).is(":checked");
+            //    $(this).parentsUntil("table").find("input[type=checkbox]").prop("checked", val);
+            //})
+
+            var start = @Html.Raw(startD);
+            var end = @Html.Raw(endD);
+
+            function cb(start, end) {
+                $('#daterange span').html(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
+                $('input[name=daterange]').val(start.format('DD/MM/YYYY') + '-' + end.format('DD/MM/YYYY'));
+            }
+
+            $('#daterange').daterangepicker({
+                "locale": {
+                    "format": "DD/MM/YYYY",
+                    "separator": " - ",
+                    "applyLabel": "Chọn",
+                    "cancelLabel": "Đóng",
+                    "fromLabel": "Từ",
+                    "toLabel": "Đến",
+                    "customRangeLabel": "Tùy chọn",
+                    "weekLabel": "W",
+                    "daysOfWeek": [
+                        "Su",
+                        "Mo",
+                        "Tu",
+                        "We",
+                        "Th",
+                        "Fr",
+                        "Sa"
+                    ],
+                    "monthNames": [
+                        "Tháng 1",
+                        "Tháng 2",
+                        "Tháng 3",
+                        "Tháng 4",
+                        "Tháng 5",
+                        "Tháng 6",
+                        "Tháng 7",
+                        "Tháng 8",
+                        "Tháng 9",
+                        "Tháng 10",
+                        "Tháng 11",
+                        "Tháng 12"
+                    ],
+                    "firstDay": 1
+                },
+                startDate: start,
+                endDate: end,
+                ranges: {
+                    'Hôm nay': [moment(), moment()],
+                    'Hôm qua': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    '7 ngày gần đây': [moment().subtract(6, 'days'), moment()],
+                    '30 ngày gần đây': [moment().subtract(29, 'days'), moment()],
+                    'Tháng này': [moment().startOf('month'), moment().endOf('month')],
+                    'Tháng trước': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                },
+                alwaysShowCalendars: true
+
+            }, cb);
+
+            cb(start, end);
+        })
+
+        function change(data)
+        {
+            var val = data.id;
+            window.location = "@Url.Action("index")" + "?a=" + val;
+        }
+
+        function changeDate()
+        {
+            $(".datepicker").each(function () {
+                val = $(this).val();
+                var pattern = /(\d{2})\/(\d{2})\/(\d{4})/;
+               $(this).siblings("input[type=hidden]").val(val.replace(pattern, "$3/$2/$1"));
+            });
+            return true;
+        }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+}

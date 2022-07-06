@@ -1,0 +1,15 @@
+﻿
+@{
+    ViewBag.Title = "Nhập danh sách sân bay";
+}
+
+<h2>Nhập danh sách sân bay</h2>
+
+<p>
+    @using (Html.BeginForm("Import", "Airports", FormMethod.Post, new { enctype = "multipart/form-data" }))
+    {
+        <input type="file" name="fileImport" />
+        <input type="submit" value="Nhập dữ liệu" />
+    }
+
+</p>

@@ -1,0 +1,27 @@
+﻿@using Megatech.FMS.Web.Models
+
+@{
+
+    var breadcrumb = (BreadcrumbModel)BreadcrumbModel.CurrentBreadcrumb;
+
+}
+
+@if (breadcrumb != null)
+{
+    <ol class="breadcrumb">
+        @foreach (var item in breadcrumb)
+        {
+            <li>
+                <a href="@item.Url">
+                    @if (!string.IsNullOrEmpty(item.IconClass))
+                    {
+                        <i class="fa @item.IconClass"></i>
+                    }
+                    @item.Text
+                </a>
+            </li>
+        }
+
+
+    </ol>
+}

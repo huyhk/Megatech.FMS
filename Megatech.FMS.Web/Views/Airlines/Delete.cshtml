@@ -1,0 +1,54 @@
+﻿@model FMS.Data.Airline
+
+@{
+    ViewBag.Title = "Xóa";
+}
+<h3>Bạn chắc chắn muốn xóa bài viết này ?</h3>
+<div>
+    <h4>Hãng bay</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+           <label>Mã hãng bay</label>
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Code)
+        </dd>
+
+        <dt>
+            <label>Tên hãng bay</label>
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+
+        <dt>
+            <label>Mã số thuế</label>
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.TaxCode)
+        </dd>
+
+        <dt>
+            <label>Địa chỉ</label>
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Address)
+        </dd>
+
+
+    </dl>
+
+    @using (Html.BeginForm()) {
+        @Html.AntiForgeryToken()
+
+        <div class="form-actions no-color">
+            <input type="submit" value="Xóa" class="btn btn-default" /> |
+            @Html.ActionLink("Quay về danh sách", "Index")
+        </div>
+    }
+</div>

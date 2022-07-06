@@ -1,0 +1,1541 @@
+﻿@model FMS.Data.Flight
+@using EntityFramework.DynamicFilters;
+@{
+    var db = new DataContext();
+    var lst_changelot = db.ChangeLogs.Where(c => c.EntityName.ToLower() == "flight" && c.EntityId == Model.Id).ToList();
+    var index = 1;
+    var order = Model.SortOrder;
+    var date = DateTime.MinValue;
+    var temp_trucks = (List<Truck>)ViewBag.Trucks;
+    var truck_0 = temp_trucks;
+    var truckAssigns = (List<TruckAssign>)ViewBag.TruckAssigns;
+    var trucks = new List<Truck>();
+    var select_val_d = "";
+    if (Request["d"] != null)
+    {
+        select_val_d = Request["d"];
+    }
+    var driver = (List<User>)ViewBag.Driver;
+    var selectList_d = new SelectList(driver, "Id", "FullName", select_val_d);
+
+    var select_val_o = "";
+    if (Request["o"] != null)
+    {
+        select_val_o = Request["o"];
+    }
+    var oper = (List<User>)ViewBag.Operator;
+    var selectList_o = new SelectList(oper, "Id", "FullName", select_val_o);
+
+    var select_val_u = "";
+    if (Request["u"] != null)
+    {
+        select_val_u = Request["u"];
+    }
+    var user = (List<User>)ViewBag.User;
+    var selectList_u = new SelectList(user, "Id", "FullName", select_val_u);
+
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+    //DateTime c_day = (DateTime)Model.RefuelScheduledTime;
+
+    db.DisableFilter("IsNotDeleted");
+    var db_Trucks = db.Trucks.Where(t => t.IsDeleted).ToList();
+    var db_Users = db.Users.Where(t => t.IsDeleted).ToList();
+    db.EnableFilter("IsNotDeleted");
+
+    //Phân công xe
+    var temp_ta = truckAssigns.Where(t => t.Shift != null
+                        && (t.Shift.StartTime <= t.Shift.EndTime ?
+                        (new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.StartTime.Hour, t.Shift.StartTime.Minute, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, Model.RefuelScheduledTime.Value.Hour, Model.RefuelScheduledTime.Value.Minute, 0)
+                        && new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, Model.RefuelScheduledTime.Value.Hour, Model.RefuelScheduledTime.Value.Minute, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.EndTime.Hour, t.Shift.EndTime.Minute, 0)
+                        && t.StartDate.Day == Model.RefuelScheduledTime.Value.Day && t.StartDate.Month == Model.RefuelScheduledTime.Value.Month && t.StartDate.Year == Model.RefuelScheduledTime.Value.Year)
+
+                        : ((new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.StartTime.Hour, t.Shift.StartTime.Minute, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, Model.RefuelScheduledTime.Value.Hour, Model.RefuelScheduledTime.Value.Minute, 0)
+                        && new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, Model.RefuelScheduledTime.Value.Hour, Model.RefuelScheduledTime.Value.Minute, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 23, 59, 0) && t.StartDate.Day == Model.RefuelScheduledTime.Value.Day && t.StartDate.Month == Model.RefuelScheduledTime.Value.Month && t.StartDate.Year == Model.RefuelScheduledTime.Value.Year) ||
+
+                        (new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, Model.RefuelScheduledTime.Value.Hour, Model.RefuelScheduledTime.Value.Minute, 0)
+                        && new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, Model.RefuelScheduledTime.Value.Hour, Model.RefuelScheduledTime.Value.Minute, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.EndTime.Hour, t.Shift.EndTime.Minute, 0) && t.StartDate.AddDays(1).Day == Model.RefuelScheduledTime.Value.Day
+                        && t.StartDate.Month == Model.RefuelScheduledTime.Value.Month && t.StartDate.Year == Model.RefuelScheduledTime.Value.Year)
+
+                        ))).ToList();
+
+    var db_TruckAssigns = temp_ta;
+    var truck_ids_refuel = Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId);
+    if (Model.Status == FlightStatus.REFUELED)
+    {
+        trucks = temp_trucks.Where(t => truck_ids_refuel.Contains(t.Id)).ToList();
+    }
+    else
+    {
+        var truck_ids = temp_ta.Select(t => t.TruckId).ToList();
+        if (truck_ids.Count() == 0)
+        {
+            truck_ids = temp_trucks.Select(t => t.Id).ToList();
+        }
+        //trường hợp phân công trước khi bảng phân công có dữ liệu thì add thêm id đã phân công vào cùng id sau khi bảng phân công đã có dữ liệu
+        if (temp_trucks.Where(t => truck_ids_refuel.Contains(t.Id)).Count() > 0)
+        {
+            truck_ids.AddRange(truck_ids_refuel);
+        }
+        trucks = temp_trucks.Where(t => truck_ids.Contains(t.Id)).ToList();
+
+        if (trucks.Count == 0)
+        {
+            trucks = temp_trucks.Where(t => truck_ids_refuel.Contains(t.Id)).ToList();
+        }
+    }
+
+    // nếu không có xe phân công nào thỏa đk bảng "phân công xe" thì lấy tất cả xe
+    if (trucks.Count == 0)
+    {
+        trucks = (List<Truck>)ViewBag.Trucks;
+    }
+
+    var count = trucks.Count();
+    var spn = 1;
+    var report = db.Reports.FirstOrDefault(r => r.FlightId == Model.Id);
+    if (count == 0)
+    {
+        <tr class="model item-flight-@Model.Id text-center item item-color parent @(Model.Status == FlightStatus.ASSIGNED ? "warning" : Model.Status == FlightStatus.REFUELED ? "success" : "") @(Model.Follow == 1 ?"follow":"")">
+
+            <td class="check">
+                @Html.CheckBox("chkSelect", false, new { value = Model.Id, @class = "is-check c-copy" })
+            </td>
+
+            <td class="order">
+                @(index++)
+            </td>
+            <td>
+                <span id="AircraftType" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftType && c.EntityId == Model.Id) != null ? "changed" : "")">@Model.AircraftType</span><br />
+                <span id="AircraftCode" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftCode && c.EntityId == Model.Id) != null ? "changed" : "")">@Model.AircraftCode</span><br />
+
+            </td>
+            <td class="next-sh-button sh-refuel-item-@Model.Id" onclick="refuelInfo(@Model.Id)">
+                <span id="Code" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Code && c.EntityId == Model.Id) != null ? "changed" : "")"> @Model.Code </span><br />
+                <span>@(Model.FlightType == FlightType.DOMESTIC ? "Nội địa" : "Quốc tế")</span>
+            </td>
+            <td class="next-sh-button sh-refuel-item-@Model.Id" onclick="refuelInfo(@Model.Id)">
+
+                <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.RouteName && c.EntityId == Model.Id) != null ? "changed" : "")" id="RouteName"> @Model.RouteName </span><br />
+                <span id="FlightCarry" class="@(lst_changelot.FirstOrDefault(c => c.EntityId == Model.Id && c.NewValues == (Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")) != null ? "changed" : "")">
+                    @(Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")
+                </span>
+
+            </td>
+            <td class="next-sh-button sh-refuel-item-@Model.Id" onclick="refuelInfo(@Model.Id)">
+                <span id="ArrivalScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                    @((Model.ArrivalScheduledTime != null && Model.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year) ? Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") : "---")
+                </span>
+                <br />
+                <span id="DepartureScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                    @Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm")
+                </span>
+            </td>
+            <td class="set-color" data-val="@Model.RefuelScheduledTime">
+                <span id="RefuelScheduledHours" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                    @Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm")
+                </span>
+                <br />
+                <span id="Parking" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Parking && c.EntityId == Model.Id) != null ? "changed" : "")">
+                    @Html.DisplayFor(modelItem => Model.Parking)
+                </span>
+            </td>
+            <td class="rspn" rowspan="@spn">
+                <span id="EstimateAmount">
+                    @Math.Round(Model.EstimateAmount).ToString("#,##0")
+                </span>
+            </td>
+            <td></td>
+            <td>
+                @Html.DropDownList("TruckId" + Model.Id, new SelectList(truck_0, "Id", "Code"), htmlAttributes: new { @class = "select2 form-control truckId d-truckId-" + Model.Id, @disabled = "" })
+            </td>
+            <td>
+                @Html.DropDownList("DriverId" + Model.Id, new SelectList(driver, "Id", "FullName"), htmlAttributes: new { @class = "select2 form-control driverId d-driverId-" + Model.Id, @disabled = "" })
+            </td>
+            <td>
+                @Html.DropDownList("OperatorId" + Model.Id, new SelectList(oper, "Id", "FullName"), htmlAttributes: new { @class = "select2 form-control operatorId d-operatorId-" + Model.Id + "", @disabled = "" })
+            </td>
+            <td>
+                @Html.DropDownList("UserId" + Model.Id, new SelectList(user, "Id", "FullName"), "---", htmlAttributes: new { @class = "select2 form-control userId d-userId-" + Model.Id, @disabled = "" })
+            </td>
+            <td>
+                <div class="action">
+                    <span class="btn-header fa fa-edit"></span>
+                    <div class="btn-content">
+                        @if (Model.Status == FlightStatus.CANCELED || Model.Status == FlightStatus.NOTREFUEL)
+                        {
+                            <a onclick="refuelInfo(@Model.Id)" class="ponter">Chi tiết</a>
+                        }
+                        else
+                        {
+                            <div class="hide-cancel-@Model.Id">
+                                <a onclick="fback(@Model.Id, @spn)" class="pointer btn-fback hidden">
+                                    Quay về
+                                </a>
+                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuel", "Flights"))
+                                {
+                                    <a onclick="refuel(@Model.Id, @spn, 0, @order)" class="pointer btn-save hidden btn-save-@Model.Id">
+                                        Lưu
+                                    </a>
+                                }
+                                <a class="hidden img-wait-@Model.Id">| <img src="~/admin-lte2.4/img/wait.svg" height="30" /></a>
+
+                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuel", "Flights"))
+                                {
+                                    <a onclick="showtruck(@Model.Id, 1)" class="pointer btn-assign btn-assign-@Model.Id">Phân công</a>
+                                }
+
+                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JEdit", "Flights"))
+                                {
+                                    <a class="pointer" onclick="getbyId(@Model.Id)">
+                                        Sửa
+                                    </a>
+                                }
+
+                                @if (Megatech.FMS.Web.AppContext.IsShowLink("Cancel", "Flights"))
+                                {
+                                    <a class="pointer btn-cancel" onclick="cancel(@Model.Id)">
+                                        Hủy chuyến
+                                    </a>
+                                }
+
+                                @if (Megatech.FMS.Web.AppContext.IsShowLink("NotRefuel", "Flights"))
+                                {
+                                    <a class="pointer btn-notrefuel" onclick="notRefuel(@Model.Id)">
+                                        Không lấy dầu
+                                    </a>
+                                }
+
+                                @if (Megatech.FMS.Web.AppContext.IsShowLink("Follow", "Flights"))
+                                {
+                                    <a class="pointer btn-follow" onclick="follow(@Model.Id)">
+                                        @(Model.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                    </a>
+                                }
+
+                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JDelete", "Flights"))
+                                {
+                                    <a onclick="fdelete(@Model.Id)" class="pointer">
+                                        Xóa
+                                    </a>
+                                }
+                            </div>
+
+                            if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuelInfo", "Flights"))
+                            {
+                                <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                            }
+                            if (Model.RefuelItems.Count > 0 && report != null && !report.IsActive && Megatech.FMS.Web.AppContext.IsShowLink("EditBM10103", "Reports"))
+                            {
+                                @*<a class="lightbox" target="_blank" href="@Url.Action("EditBM10103","Reports", new { flightId = item.Id, url = HttpContext.Current.Request.Url.AbsoluteUri })">Báo cáo giám sát</a>*@
+                                <span>Đã giám sát</span>
+                            }
+                            else if (Model.RefuelItems.Count > 0 && Megatech.FMS.Web.AppContext.IsShowLink("CreateBM10103", "Reports"))
+                            {
+                                <a class="lightbox" target="_blank" href="@Url.Action("CreateBM10103","Reports", new { flightId = Model.Id, url = HttpContext.Current.Request.Url.AbsoluteUri })">Giám sát</a>
+                            }
+                            if (Megatech.FMS.Web.AppContext.IsShowLink("BM7009", "Reports"))
+                            {
+                                <a class="pointer btn-edit" onclick="getProperty(@Model.Id)">
+                                    Khác
+                                </a>
+                            }
+                        }
+                    </div>
+                </div>
+            </td>
+        </tr>
+    }
+    else if (Model.Status == FlightStatus.REFUELED)
+    {
+        var i = 0;
+        if (Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Count() > 1)
+        {
+            spn = Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Count();
+        }
+        foreach (var ri in Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT))
+        {
+            <tr class="model item-flight-@Model.Id text-center item parent @(Model.Status == FlightStatus.ASSIGNED ? "warning" :Model.Status == FlightStatus.REFUELED?"success": "") @(Model.Follow == 1 ?"follow":"")">
+                @if (i == 0)
+                {
+                    <td class="rspn check" rowspan="@spn">
+                        @Html.CheckBox("chkSelect", false, new { value = Model.Id, @class = "is-check c-copy" })
+                    </td>
+
+                    <td class="order rspn" rowspan="@spn">
+                        @(index++)
+                    </td>
+                    <td class="rspn" rowspan="@spn">
+                        <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftType && c.EntityId == Model.Id) != null ? "changed" : "")" id="AircraftType">@Model.AircraftType</span><br />
+                        <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftCode && c.EntityId == Model.Id) != null ? "changed" : "")" id="AircraftCode">@Model.AircraftCode</span><br />
+
+                    </td>
+                    <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+                        <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Code && c.EntityId == Model.Id) != null ? "changed" : "")" id="Code"> @Model.Code </span><br />
+                        <span>@(Model.FlightType == FlightType.DOMESTIC ? "Nội địa" : "Quốc tế")</span>
+                    </td>
+                    <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+
+                        <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.RouteName && c.EntityId == Model.Id) != null ? "changed" : "")" id="RouteName"> @Model.RouteName </span><br />
+                        <span id="FlightCarry" class="@(lst_changelot.FirstOrDefault(c => c.EntityId == Model.Id && c.NewValues == (Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")) != null ? "changed" : "")">
+                            @(Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")
+                        </span>
+                    </td>
+                    <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+                        <span id="ArrivalScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                            @(Model.ArrivalScheduledTime != null && Model.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year ? Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") : "---")
+                        </span>
+                        <br />
+                        <span id="DepartureScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                            @Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm")
+                        </span>
+                    </td>
+                    <td class="rspn set-color" rowspan="@spn" data-val="@Model.RefuelScheduledTime">
+                        <span id="RefuelScheduledHours" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                            @Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm")
+                        </span>
+                        <br />
+                        <span id="Parking" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Parking && c.EntityId == Model.Id) != null ? "changed" : "")">
+                            @Html.DisplayFor(modelItem => Model.Parking)
+                        </span>
+
+                    </td>
+                    <td id="EstimateAmount" class="rspn" rowspan="@spn">
+                        @Math.Round(Model.EstimateAmount).ToString("#,##0")
+                    </td>
+                }
+                <td class="@(ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "extract-color":"")">
+                    <input name="trucks" type="checkbox" value="@ri.Id" class="trucks checkbox2" checked="checked" disabled="disabled" />
+                    @if (ri.SortOrder != null && ri.SortOrder < 1000)
+                    {
+                        <input name="SortOrder" type="number" min="0" size="3" class="sort-order" disabled="disabled" value="@ri.SortOrder" />
+                    }
+                    else
+                    {
+                        <input name="SortOrder" type="number" min="0" size="3" class="sort-order" disabled="disabled" value="" />
+                    }
+                </td>
+                <td class="@(ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "extract-color":"")">
+                    @if (ri.Truck != null)
+                    {
+                        @ri.Truck.Code
+                    }
+                    else
+                    {
+                        var truck_d = db_Trucks.FirstOrDefault(t => t.Id == ri.TruckId);
+                        if (truck_d != null)
+                        {
+                            <span>@truck_d.Code</span>
+                        }
+                    }
+                </td>
+                <td class="@(ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "extract-color":"")">
+                    @if (ri.Driver != null)
+                    {
+                        @ri.Driver.FullName
+                    }
+                    else
+                    {
+                        var user_d = db_Users.FirstOrDefault(u => u.Id == ri.DriverId);
+                        if (user_d != null)
+                        {
+                            <span>@user_d.FullName</span>
+                        }
+                    }
+                </td>
+                <td class="@(ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "extract-color":"")">
+                    @if (ri.Operator != null)
+                    {
+                        @ri.Operator.FullName
+                    }
+                    else
+                    {
+                        var user_d = db_Users.FirstOrDefault(u => u.Id == ri.OperatorId);
+                        if (user_d != null)
+                        {
+                            <span>@user_d.FullName</span>
+                        }
+                    }
+                </td>
+                <td class="@(ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "extract-color":"")">
+                    @if (ri.User != null)
+                    {
+                        @ri.User.FullName
+                    }
+                    else
+                    {
+                        var user_d = db_Users.FirstOrDefault(u => u.Id == ri.UserId);
+                        if (user_d != null)
+                        {
+                            <span>@user_d.FullName</span>
+                        }
+                        else
+                        {
+                            <span>---</span>
+                        }
+                    }
+                </td>
+                @if (i == 0)
+                {
+                    if (viewOnly)
+                    {
+                        <td class="rspn next-sh-button" rowspan="@spn">
+                            <div class="action">
+                                <span class="btn-header fa fa-edit"></span>
+                                <div class="btn-content">
+                                    <a onclick="refuelInfo(@Model.Id)">Chi tiết</a>
+                                </div>
+                            </div>
+                        </td>
+
+                    }
+                    else
+                    {
+                        <td class="rspn" rowspan="@spn">
+                            <div class="action">
+                                <span class="btn-header fa fa-edit"></span>
+                                <div class="btn-content">
+                                    <a class="pointer" onclick="getbyId(@Model.Id)">
+                                        Sửa
+                                    </a>
+                                    @if (User.IsInRole("Super Admin"))
+                                    {
+                                        <a onclick="fdelete(@Model.Id)" class="pointer">
+                                            Xóa
+                                        </a>
+                                    }
+                                    <a onclick="refuelInfo(@Model.Id)">Chi tiết</a>
+                                </div>
+                            </div>
+                        </td>
+                    }
+                }
+            </tr>
+            i++;
+        }
+    }
+    else
+    {
+        if (db_TruckAssigns.Count > 0)
+        {
+            spn = 1;
+            var i = 0;
+            var fspn = 1;
+            if (Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Count() > 1)
+            {
+                fspn = Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Count();
+            }
+            var show_spn = Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Count() + db_TruckAssigns.Where(t => !Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && t.TruckId == r.TruckId && t.DriverId == r.DriverId && t.TechnicalerId == r.OperatorId).Select(r => r.TruckId).Contains(t.TruckId)).Count();
+            if (Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Count() > 0)
+            {
+                spn = Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Count();
+            }
+            else if (db_TruckAssigns.Count(t => Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(t.TruckId)) > 0)
+            {
+                spn = db_TruckAssigns.Count(t => Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(t.TruckId));
+            }
+            foreach (var ri in Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).OrderBy(r => r.SortOrder).ToList())
+            {
+                <tr class="model item-flight-@Model.Id text-center item parent @((!Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(ri.TruckId) && i > 0)?"hidden fhide":"item-color") @(Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(ri.TruckId) ? "warning" :Model.Status == FlightStatus.REFUELED?"success": "") @(Model.Follow == 1 ?"follow":"")">
+                    @if (i == 0)
+                    {
+                        <td class="rspn check" rowspan="@spn">
+                            @Html.CheckBox("chkSelect", false, new { value = Model.Id, @class = "is-check c-copy" })
+                        </td>
+                        <td class="order rspn" rowspan="@spn">
+                            @(index++)
+                        </td>
+                        <td class="rspn" rowspan="@spn">
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftType && c.EntityId == Model.Id) != null ? "changed" : "")" id="AircraftType">@Model.AircraftType</span><br />
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftCode && c.EntityId == Model.Id) != null ? "changed" : "")" id="AircraftCode">@Model.AircraftCode</span><br />
+
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Code && c.EntityId == Model.Id) != null ? "changed" : "")" id="Code"> @Model.Code </span><br />
+                            <span>@(Model.FlightType == FlightType.DOMESTIC ? "Nội địa" : "Quốc tế")</span>
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.RouteName && c.EntityId == Model.Id) != null ? "changed" : "")" id="RouteName"> @Model.RouteName </span><br />
+                            <span id="FlightCarry" class="@(lst_changelot.FirstOrDefault(c => c.EntityId == Model.Id && c.NewValues == (Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")) != null ? "changed" : "")">
+                                @(Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")
+                            </span>
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+                            <span id="ArrivalScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @(Model.ArrivalScheduledTime != null && Model.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year ? Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") : "---")
+                            </span>
+                            <br />
+                            <span id="DepartureScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm")
+                            </span>
+                        </td>
+                        <td class="rspn set-color" rowspan="@spn" data-val="@Model.RefuelScheduledTime">
+                            <span id="RefuelScheduledHours" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm")
+                            </span>
+                            <br />
+                            <span id="Parking" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Parking && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Html.DisplayFor(modelItem => Model.Parking)
+                            </span>
+                        </td>
+                        <td class="rspn" rowspan="@spn">
+                            <span id="EstimateAmount">
+                                @Math.Round(Model.EstimateAmount).ToString("#,##0")
+                            </span>
+                        </td>
+                    }
+                        <td class="@(ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "extract-color":"")">
+                            @if (Model.RefuelItems.Where(r => r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.TruckId))
+                            {
+                                <span class="fa fa-check-square" style="color:#ddd"></span>
+                            }
+                            else
+                            {
+                                if (Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Count() > 0)
+                                {
+                                    <input disabled name="trucks" type="checkbox" value="@ri.TruckId" class="trucks checkbox2 i-truck-@Model.Id" @(Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(ri.TruckId) ? "checked" : "") />
+                                }
+                                else
+                                {
+                                    <input name="trucks" type="checkbox" value="@ri.TruckId" class="trucks checkbox2" disabled />
+                                }
+                            }
+
+                            @if (ri.SortOrder != null && ri.SortOrder < 1000)
+                            {
+                                <input name="SortOrder" type="number" min="0" size="3" class="sort-order" disabled="disabled" value="@ri.SortOrder" />
+                            }
+                            else
+                            {
+                                <input name="SortOrder" type="number" min="0" size="3" class="sort-order" disabled="disabled" value="" />
+                            }
+                        </td>
+                    <td class="@(ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "extract-color":"")">
+                        @if (ri.Truck != null)
+                        {
+                            <span>@ri.Truck.Code</span>
+                        }
+                        else
+                        {
+                            <span>---</span>
+                        }
+                    </td>
+                    <td class="truck-@ri.TruckId @(ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "extract-color":"")">
+                        @{
+                            var selected_Id = -1;
+
+                            if (ri.DriverId != null)
+                            {
+                                selected_Id = (int)ri.DriverId;
+                            }
+                        }
+                        @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.TruckId) && driver.FirstOrDefault(u => u.Id == selected_Id) != null)
+                        {
+                            <span>
+                                @driver.FirstOrDefault(u => u.Id == selected_Id).FullName
+                            </span>
+                        }
+                        else
+                        {
+                            if (selected_Id > 0)
+                            {
+                                @Html.DropDownList("DriverId" + Model.Id + "_" + ri.Id, new SelectList(driver, "Id", "FullName", selected_Id), htmlAttributes: new { @onchange = "changeUserGroup1(" + Model.Id + "," + ri.TruckId + ",this.value)", @class = "select2 form-control driverId d-driverId-" + Model.Id, @disabled = "" })
+                            }
+                            else
+                            {
+                                @Html.DropDownList("DriverId" + Model.Id + "_" + ri.Id, new SelectList(driver, "Id", "FullName"), htmlAttributes: new { @onchange = "changeUserGroup1(" + Model.Id + "," + ri.TruckId + ",this.value)", @class = "select2 form-control driverId d-driverId-" + Model.Id, @disabled = "" })
+                            }
+                        }
+                    </td>
+                    <td class="truck-@ri.TruckId @(ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "extract-color":"")">
+                        @{
+                            selected_Id = -1;
+
+                            if (ri.OperatorId != null)
+                            {
+                                selected_Id = (int)ri.OperatorId;
+                            }
+
+                        }
+                        @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.TruckId) && oper.FirstOrDefault(u => u.Id == selected_Id) != null)
+                        {
+                            <span>
+                                @oper.FirstOrDefault(u => u.Id == selected_Id).FullName
+                            </span>
+                        }
+                        else
+                        {
+                            if (selected_Id > 0)
+                            {
+                                @Html.DropDownList("OperatorId" + Model.Id + "_" + ri.Id, new SelectList(oper, "Id", "FullName", selected_Id), htmlAttributes: new { @class = "select2 form-control operatorId d-operatorId-" + Model.Id, @disabled = "" })
+                            }
+                            else
+                            {
+                                @Html.DropDownList("OperatorId" + Model.Id + "_" + ri.Id, new SelectList(oper, "Id", "FullName"), htmlAttributes: new { @class = "select2 form-control operatorId d-operatorId-" + Model.Id + "", @disabled = "" })
+                            }
+                        }
+                    </td>
+                    <td class="truck-@ri.TruckId @(ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "extract-color":"")">
+                        @{
+                            selected_Id = -1;
+
+                            if (ri.UserId != null)
+                            {
+                                selected_Id = (int)ri.UserId;
+                            }
+
+                        }
+                        @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.TruckId) && user.FirstOrDefault(u => u.Id == selected_Id) != null)
+                        {
+                            <span>
+                                @user.FirstOrDefault(u => u.Id == selected_Id).FullName
+                            </span>
+                        }
+                        else
+                        {
+                            if (selected_Id > 0)
+                            {
+                                @Html.DropDownList("UserId" + Model.Id + "_" + ri.Id, new SelectList(user, "Id", "FullName", selected_Id), "---", htmlAttributes: new { @class = "select2 form-control userId d-userId-" + Model.Id, @disabled = "" })
+                            }
+                            else
+                            {
+                                @Html.DropDownList("UserId" + Model.Id + "_" + ri.Id, new SelectList(user, "Id", "FullName"), "---", htmlAttributes: new { @class = "select2 form-control userId d-userId-" + Model.Id, @disabled = "" })
+                            }
+                        }
+                    </td>
+                    <td>
+                        <input disabled name="all_trucks" type="checkbox" value="" title="Áp dụng cho tất cả các chuyến bay có xe tra nạp này." class="all-trucks checkbox2" />
+                    </td>
+
+                    @if (i == 0)
+                    {
+                        <td class="rspn" rowspan="@spn">
+                            <div class="action">
+                                <span class="btn-header fa fa-edit"></span>
+                                <div class="btn-content">
+                                    @if (Model.Status == FlightStatus.CANCELED || Model.Status == FlightStatus.NOTREFUEL)
+                                    {
+                                        <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                                    }
+                                    else
+                                    {
+                                        <div class="hide-cancel-@Model.Id">
+                                            <a onclick="fback(@Model.Id, @fspn)" class="pointer btn-fback hidden">
+                                                Quay về
+                                            </a>
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuel", "Flights"))
+                                            {
+                                                <a onclick="refuel(@Model.Id, @fspn, 1, @order)" class="pointer btn-save hidden btn-save-@Model.Id">
+                                                    Lưu
+                                                </a>
+                                            }
+                                            <a class="hidden img-wait-@Model.Id"><img src="~/admin-lte2.4/img/wait.svg" height="30" /></a>
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuel", "Flights"))
+                                            {
+                                                <a onclick="showtruck(@Model.Id, @show_spn,@order)" class="pointer btn-assign btn-assign-@Model.Id">@(Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT)).Select(f => f.TruckId).Contains(ri.TruckId) ? "Phân công lại" : "Phân công")</a>
+                                                @*<a onclick="showtruck(@Model.Id, @db_TruckAssigns.Where(t => t.Truck.IsActive != 0).Count(),@order)" class="pointer btn-assign btn-assign-@Model.Id">@(Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.TruckId) ? "Phân công lại" : "Phân công")</a>*@
+                                            }
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("JEdit", "Flights"))
+                                            {
+                                                <a class="pointer" onclick="getbyId(@Model.Id)">
+                                                    Sửa
+                                                </a>
+                                            }
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("Cancel", "Flights"))
+                                            {
+                                                <a class="pointer btn-cancel" onclick="cancel(@Model.Id)">
+                                                    Hủy chuyến
+                                                </a>
+                                            }
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("NotRefuel", "Flights"))
+                                            {
+                                                <a class="pointer btn-notrefuel" onclick="notRefuel(@Model.Id)">
+                                                    Không lấy dầu
+                                                </a>
+                                            }
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("Follow", "Flights"))
+                                            {
+                                                <a class="pointer btn-follow" onclick="follow(@Model.Id)">
+                                                    @(Model.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                                </a>
+                                            }
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("JDelete", "Flights"))
+                                            {
+                                                <a onclick="fdelete(@Model.Id)" class="pointer">Xóa</a>
+                                            }
+                                        </div>
+                                        if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuelInfo", "Flights"))
+                                        {
+                                            <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                                        }
+                                        if (Model.RefuelItems.Count > 0 && report != null && !report.IsActive && Megatech.FMS.Web.AppContext.IsShowLink("EditBM10103", "Reports"))
+                                        {
+                                            @*<a class="lightbox" target="_blank" href="@Url.Action("EditBM10103","Reports", new { flightId = item.Id, url = HttpContext.Current.Request.Url.AbsoluteUri })">Báo cáo giám sát</a>*@
+                                            <span>Đã giám sát</span>
+                                        }
+                                        else if (Model.RefuelItems.Count > 0 && Megatech.FMS.Web.AppContext.IsShowLink("CreateBM10103", "Reports"))
+                                        {
+                                            <a class="lightbox" target="_blank" href="@Url.Action("CreateBM10103","Reports", new { flightId = Model.Id, url = HttpContext.Current.Request.Url.AbsoluteUri })">Giám sát</a>
+                                        }
+                                        if (Megatech.FMS.Web.AppContext.IsShowLink("BM7009", "Reports"))
+                                        {
+                                            <a class="pointer btn-edit" onclick="getProperty(@Model.Id)">
+                                                Khác
+                                            </a>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </td>
+                    }
+                </tr>
+                i++;
+            }
+            foreach (var ri in db_TruckAssigns.Where(t => !Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && t.TruckId == r.TruckId && t.DriverId == r.DriverId && t.TechnicalerId == r.OperatorId).Select(r => r.TruckId).Contains(t.TruckId)).ToList())
+            {
+                <tr class="model item-flight-@Model.Id text-center item parent @(i > 0?"hidden fhide":"item-color") @(Model.Follow == 1 ?"follow":"")">
+                    @if (i == 0)
+                    {
+                        <td class="rspn check" rowspan="@spn">
+                            @Html.CheckBox("chkSelect", false, new { value = Model.Id, @class = "is-check c-copy" })
+                        </td>
+                        <td class="order rspn" rowspan="@spn">
+                            @(index++)
+                        </td>
+                        <td class="rspn" rowspan="@spn">
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftType && c.EntityId == Model.Id) != null ? "changed" : "")" id="AircraftType">@Model.AircraftType</span><br />
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftCode && c.EntityId == Model.Id) != null ? "changed" : "")" id="AircraftCode">@Model.AircraftCode</span><br />
+
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Code && c.EntityId == Model.Id) != null ? "changed" : "")" id="Code"> @Model.Code </span><br />
+                            <span>@(Model.FlightType == FlightType.DOMESTIC ? "Nội địa" : "Quốc tế")</span>
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.RouteName && c.EntityId == Model.Id) != null ? "changed" : "")" id="RouteName"> @Model.RouteName </span><br />
+                            <span id="FlightCarry" class="@(lst_changelot.FirstOrDefault(c => c.EntityId == Model.Id && c.NewValues == (Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")) != null ? "changed" : "")">
+                                @(Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")
+                            </span>
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+                            <span id="ArrivalScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @(Model.ArrivalScheduledTime != null && Model.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year ? Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") : "---")
+                            </span>
+                            <br />
+                            <span id="DepartureScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm")
+                            </span>
+                        </td>
+                        <td class="rspn set-color" rowspan="@spn" data-val="@Model.RefuelScheduledTime">
+                            <span id="RefuelScheduledHours" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm")
+                            </span>
+                            <br />
+                            <span id="Parking" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Parking && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Html.DisplayFor(modelItem => Model.Parking)
+                            </span>
+                        </td>
+                        <td class="rspn" rowspan="@spn">
+                            <span id="EstimateAmount">
+                                @Math.Round(Model.EstimateAmount).ToString("#,##0")
+                            </span>
+                        </td>
+                    }
+                        <td>
+                            <input name="trucks" type="checkbox" value="@ri.TruckId" class="trucks checkbox2" disabled />
+                            <input name="SortOrder" type="number" min="0" size="3" class="sort-order" disabled="disabled" />
+                        </td>
+                    <td class="sh-info">
+                        @if (ri.Truck != null)
+                        {
+                            <span>@ri.Truck.Code</span>
+                        }
+                        else
+                        {
+                            <span>---</span>
+                        }
+                    </td>
+                    <td class="truck-@ri.TruckId sh-info">
+                        @{
+                            var selected_Id = -1;
+
+                            selected_Id = ri.DriverId;
+
+                        }
+
+                        @if (selected_Id > 0)
+                        {
+                            @Html.DropDownList("DriverId" + Model.Id + "_" + ri.Id, new SelectList(driver, "Id", "FullName", selected_Id), htmlAttributes: new { @onchange = "changeUserGroup1(" + Model.Id + "," + ri.TruckId + ",this.value)", @class = "select2 form-control driverId d-driverId-" + Model.Id, @disabled = "" })
+                        }
+                        else
+                        {
+                            @Html.DropDownList("DriverId" + Model.Id + "_" + ri.Id, new SelectList(driver, "Id", "FullName"), htmlAttributes: new { @onchange = "changeUserGroup1(" + Model.Id + "," + ri.TruckId + ",this.value)", @class = "select2 form-control driverId d-driverId-" + Model.Id, @disabled = "" })
+                        }
+
+                    </td>
+                    <td class="truck-@ri.TruckId sh-info">
+                        @{
+                            selected_Id = -1;
+
+                            selected_Id = ri.TechnicalerId;
+
+                        }
+
+                        @if (selected_Id > 0)
+                        {
+                            @Html.DropDownList("OperatorId" + Model.Id + "_" + ri.Id, new SelectList(oper, "Id", "FullName", selected_Id), htmlAttributes: new { @class = "select2 form-control operatorId d-operatorId-" + Model.Id, @disabled = "" })
+                        }
+                        else
+                        {
+                            @Html.DropDownList("OperatorId" + Model.Id + "_" + ri.Id, new SelectList(oper, "Id", "FullName"), htmlAttributes: new { @class = "select2 form-control operatorId d-operatorId-" + Model.Id + "", @disabled = "" })
+                        }
+
+                    </td>
+                    <td class="truck-@ri.TruckId sh-info">
+                        @{
+                            selected_Id = -1;
+                            if (ri.UserId != null)
+                            {
+                                selected_Id = (int)ri.UserId;
+                            }
+                        }
+
+                        @if (selected_Id > 0)
+                        {
+                            @Html.DropDownList("UserId" + Model.Id + "_" + ri.Id, new SelectList(user, "Id", "FullName", selected_Id), "---", htmlAttributes: new { @class = "select2 form-control userId d-userId-" + Model.Id, @disabled = "" })
+                        }
+                        else
+                        {
+                            @Html.DropDownList("UserId" + Model.Id + "_" + ri.Id, new SelectList(user, "Id", "FullName"), "---", htmlAttributes: new { @class = "select2 form-control userId d-userId-" + Model.Id, @disabled = "" })
+                        }
+
+                    </td>
+                    <td>
+                        <input disabled name="all_trucks" type="checkbox" value="" title="Áp dụng cho tất cả các chuyến bay có xe tra nạp này." class="all-trucks checkbox2" />
+                    </td>
+
+                    @if (i == 0)
+                    {
+                        <td class="rspn" rowspan="@spn">
+                            <div class="action">
+                                <span class="btn-header fa fa-edit"></span>
+                                <div class="btn-content">
+                                    @if (Model.Status == FlightStatus.CANCELED || Model.Status == FlightStatus.NOTREFUEL)
+                                    {
+                                        <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                                    }
+                                    else
+                                    {
+                                        <div class="hide-cancel-@Model.Id">
+                                            <a onclick="fback(@Model.Id, @fspn)" class="pointer btn-fback hidden">
+                                                Quay về
+                                            </a>
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuel", "Flights"))
+                                            {
+                                                <a onclick="refuel(@Model.Id, @fspn, 1, @order)" class="pointer btn-save hidden btn-save-@Model.Id">
+                                                    Lưu
+                                                </a>
+                                            }
+                                            <a class="hidden img-wait-@Model.Id"><img src="~/admin-lte2.4/img/wait.svg" height="30" /></a>
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuel", "Flights"))
+                                            {
+                                                <a onclick="showtruck(@Model.Id, @show_spn,@order)" class="pointer btn-assign btn-assign-@Model.Id">@(Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT)).Select(f => f.TruckId).Contains(ri.TruckId) ? "Phân công lại" : "Phân công")</a>
+                                            }
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("JEdit", "Flights"))
+                                            {
+                                                <a class="pointer" onclick="getbyId(@Model.Id)">
+                                                    Sửa
+                                                </a>
+                                            }
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("Cancel", "Flights"))
+                                            {
+                                                <a class="pointer btn-cancel" onclick="cancel(@Model.Id)">
+                                                    Hủy chuyến
+                                                </a>
+                                            }
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("NotRefuel", "Flights"))
+                                            {
+                                                <a class="pointer btn-notrefuel" onclick="notRefuel(@Model.Id)">
+                                                    Không lấy dầu
+                                                </a>
+                                            }
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("Follow", "Flights"))
+                                            {
+                                                <a class="pointer btn-follow" onclick="follow(@Model.Id)">
+                                                    @(Model.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                                </a>
+                                            }
+
+                                            @if (Megatech.FMS.Web.AppContext.IsShowLink("JDelete", "Flights"))
+                                            {
+                                                <a onclick="fdelete(@Model.Id)" class="pointer">Xóa</a>
+                                            }
+                                        </div>
+                                        if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuelInfo", "Flights"))
+                                        {
+                                            <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                                        }
+                                        if (Model.RefuelItems.Count > 0 && report != null && !report.IsActive && Megatech.FMS.Web.AppContext.IsShowLink("EditBM10103", "Reports"))
+                                        {
+                                            @*<a class="lightbox" target="_blank" href="@Url.Action("EditBM10103","Reports", new { flightId = item.Id, url = HttpContext.Current.Request.Url.AbsoluteUri })">Báo cáo giám sát</a>*@
+                                            <span>Đã giám sát</span>
+                                        }
+                                        else if (Model.RefuelItems.Count > 0 && Megatech.FMS.Web.AppContext.IsShowLink("CreateBM10103", "Reports"))
+                                        {
+                                            <a class="lightbox" target="_blank" href="@Url.Action("CreateBM10103","Reports", new { flightId = Model.Id, url = HttpContext.Current.Request.Url.AbsoluteUri })">Giám sát</a>
+                                        }
+                                        if (Megatech.FMS.Web.AppContext.IsShowLink("BM7009", "Reports"))
+                                        {
+                                            <a class="pointer btn-edit" onclick="getProperty(@Model.Id)">
+                                                Khác
+                                            </a>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </td>
+                    }
+                </tr>
+                i++;
+            }
+        }
+        else
+        {
+            spn = 1;
+            var t_temps = trucks.Where(t => !Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(r => r.TruckId).Contains(t.Id)).ToList();
+            var rf_temp = Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).OrderBy(r => r.SortOrder).ToList();
+            if (rf_temp.Count > 1)
+            {
+                spn = rf_temp.Count;
+            }
+            var i = 0;
+            foreach (var ri in rf_temp.OrderBy(r => r.SortOrder))
+            {
+                var assinged = ri;
+                var truck_assign = temp_ta.FirstOrDefault(t => t.TruckId == ri.TruckId);
+                bool isaxtract_color = ri.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT;
+                <tr class="model item-flight-@Model.Id text-center item parent @((!Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT)).Select(f => f.TruckId).Contains(ri.TruckId) && i > 0)?"hidden fhide":"item-color") @(Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(ri.TruckId) ? "warning" :Model.Status == FlightStatus.REFUELED?"success": "") @(Model.Follow == 1 ?"follow":"")">
+                    @if (i == 0)
+                    {
+                        <td class="rspn check" rowspan="@spn">
+                            @Html.CheckBox("chkSelect", false, new { value = Model.Id, @class = "is-check c-copy" })
+                        </td>
+
+                        <td class="order rspn" rowspan="@spn">
+                            @(index++)
+                        </td>
+                        <td class="rspn" rowspan="@spn">
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftType && c.EntityId == Model.Id) != null ? "changed" : "")" id="AircraftType">@Model.AircraftType</span><br />
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftCode && c.EntityId == Model.Id) != null ? "changed" : "")" id="AircraftCode">@Model.AircraftCode</span><br />
+
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Code && c.EntityId == Model.Id) != null ? "changed" : "")" id="Code"> @Model.Code </span><br />
+                            <span>@(Model.FlightType == FlightType.DOMESTIC ? "Nội địa" : "Quốc tế")</span>
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+
+                            <span id="RouteName" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.RouteName && c.EntityId == Model.Id) != null ? "changed" : "")"> @Model.RouteName </span><br />
+                            <span id="FlightCarry" class="@(lst_changelot.FirstOrDefault(c => c.EntityId == Model.Id && c.NewValues == (Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")) != null ? "changed" : "")">
+                                @(Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")
+                            </span>
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+                            <span id="ArrivalScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @(Model.ArrivalScheduledTime != null && Model.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year ? Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") : "---")
+                            </span>
+                            <br />
+                            <span id="DepartureScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm")
+                            </span>
+                        </td>
+                        <td class="rspn set-color" rowspan="@spn" data-val="@Model.RefuelScheduledTime">
+                            <span id="RefuelScheduledHours" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm")
+                            </span>
+                            <br />
+                            <span id="Parking" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Parking && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Html.DisplayFor(modelItem => Model.Parking)
+                            </span>
+                        </td>
+                        <td class="rspn" rowspan="@spn">
+                            <span id="EstimateAmount">
+                                @Math.Round(Model.EstimateAmount).ToString("#,##0")
+                            </span>
+                        </td>
+                    }
+                        <td class="@(isaxtract_color?"extract-color":"")">
+                            @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.Id))
+                            {
+                                <span class="fa fa-check-square" style="color:#ddd"></span>
+                            }
+                            else
+                            {
+                                if (Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Count() > 0)
+                                {
+                                    <input disabled name="trucks" type="checkbox" value="@ri.TruckId" class="trucks checkbox2 i-truck-@Model.Id" @(Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(ri.TruckId) ? "checked" : "") />
+                                }
+                                else
+                                {
+                                    <input name="trucks" type="checkbox" value="@ri.TruckId" class="trucks checkbox2" disabled />
+                                }
+                            }
+
+                            @if (ri.SortOrder != null && ri.SortOrder < 1000)
+                            {
+                                <input name="SortOrder" type="number" min="0" size="3" class="sort-order" disabled="disabled" value="@ri.SortOrder" />
+                            }
+                            else
+                            {
+                                <input name="SortOrder" type="number" min="0" size="3" class="sort-order" disabled="disabled" value="" />
+                            }
+                        </td>
+                    <td class="@(assinged == null ?"sh-info":"") @(isaxtract_color?"extract-color":"")">
+                        <span>@(ri.Truck != null ? ri.Truck.Code : "") </span>
+                    </td>
+                    <td class="truck-@ri.TruckId @(assinged == null ?"sh-info":"") @(isaxtract_color?"extract-color":"")">
+                        @{
+                            var selected_Id = -1;
+                            if (assinged != null)
+                            {
+                                if (assinged.DriverId != null)
+                                {
+                                    selected_Id = (int)assinged.DriverId;
+                                }
+                            }
+                            else if (truck_assign != null)
+                            {
+                                selected_Id = truck_assign.DriverId;
+                            }
+                        }
+                        @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.TruckId) && driver.FirstOrDefault(u => u.Id == selected_Id) != null)
+                        {
+                            <span>
+                                @driver.FirstOrDefault(u => u.Id == selected_Id).FullName
+                            </span>
+                        }
+                        else
+                        {
+                            if (selected_Id > 0)
+                            {
+                                @Html.DropDownList("DriverId" + Model.Id + "_" + ri.TruckId, new SelectList(driver, "Id", "FullName", selected_Id), htmlAttributes: new { @onchange = "changeUserGroup1(" + Model.Id + "," + ri.TruckId + ",this.value)", @class = "select2 form-control driverId d-driverId-" + Model.Id, @disabled = "" })
+                            }
+                            else
+                            {
+                                @Html.DropDownList("DriverId" + Model.Id + "_" + ri.TruckId, new SelectList(driver, "Id", "FullName"), htmlAttributes: new { @onchange = "changeUserGroup1(" + Model.Id + "," + ri.TruckId + ",this.value)", @class = "select2 form-control driverId d-driverId-" + Model.Id, @disabled = "" })
+                            }
+                        }
+                    </td>
+                    <td class="truck-@ri.TruckId @(assinged == null ?"sh-info":"") @(isaxtract_color?"extract-color":"")">
+                        @{
+                            selected_Id = -1;
+                            if (assinged != null)
+                            {
+                                if (assinged.OperatorId != null)
+                                {
+                                    selected_Id = (int)assinged.OperatorId;
+                                }
+                            }
+                            else if (truck_assign != null)
+                            {
+                                selected_Id = truck_assign.TechnicalerId;
+                            }
+                        }
+                        @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.TruckId) && oper.FirstOrDefault(u => u.Id == selected_Id) != null)
+                        {
+                            <span>
+                                @oper.FirstOrDefault(u => u.Id == selected_Id).FullName
+                            </span>
+                        }
+                        else
+                        {
+                            if (selected_Id > 0)
+                            {
+                                @Html.DropDownList("OperatorId" + Model.Id + "_" + ri.TruckId, new SelectList(oper, "Id", "FullName", selected_Id), htmlAttributes: new { @class = "select2 form-control operatorId d-operatorId-" + Model.Id, @disabled = "" })
+                            }
+                            else
+                            {
+                                @Html.DropDownList("OperatorId" + Model.Id + "_" + ri.TruckId, new SelectList(oper, "Id", "FullName"), htmlAttributes: new { @class = "select2 form-control operatorId d-operatorId-" + Model.Id + "", @disabled = "" })
+                            }
+                        }
+                    </td>
+                    <td class="truck-@ri.TruckId @(assinged == null ?"sh-info":"") @(isaxtract_color ? "extract-color" : "")">
+                        @{
+                            selected_Id = -1;
+                            if (assinged != null)
+                            {
+                                if (assinged.UserId != null)
+                                {
+                                    selected_Id = (int)assinged.UserId;
+                                }
+                            }
+                            else if (truck_assign != null)
+                            {
+                                selected_Id = (int)truck_assign.UserId;
+                            }
+                        }
+                        @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.TruckId) && user.FirstOrDefault(u => u.Id == selected_Id) != null)
+                        {
+                            <span>
+                                @user.FirstOrDefault(u => u.Id == selected_Id).FullName
+                            </span>
+                        }
+                        else
+                        {
+                            if (selected_Id > 0)
+                            {
+                                @Html.DropDownList("UserId" + Model.Id + "_" + ri.TruckId, new SelectList(user, "Id", "FullName", selected_Id), "---", htmlAttributes: new { @class = "select2 form-control userId d-userId-" + Model.Id, @disabled = "" })
+                            }
+                            else
+                            {
+                                @Html.DropDownList("UserId" + Model.Id + "_" + ri.TruckId, new SelectList(user, "Id", "FullName"), "---", htmlAttributes: new { @class = "select2 form-control userId d-userId-" + Model.Id, @disabled = "" })
+                            }
+                        }
+                    </td>
+                    <td>
+                        <input disabled name="all_trucks" type="checkbox" value="" title="Áp dụng cho tất cả các chuyến bay có xe tra nạp này." class="all-trucks checkbox2" />
+                    </td>
+                    @if (i == 0)
+                    {
+                        if (viewOnly)
+                        {
+                            <td class="rspn next-sh-button" rowspan="@spn">
+                                <div class="action">
+                                    <span class="btn-header fa fa-edit"></span>
+                                    <div class="btn-content">
+                                        <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                                    </div>
+                                </div>
+                            </td>
+                        }
+                        else
+                        {
+                            <td class="rspn" rowspan="@spn">
+                                <div class="action">
+                                    <span class="btn-header fa fa-edit"></span>
+                                    <div class="btn-content">
+                                        @if (Model.Status == FlightStatus.CANCELED || Model.Status == FlightStatus.NOTREFUEL)
+                                        {
+                                            <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                                        }
+                                        else
+                                        {
+                                            <div class="hide-cancel-@Model.Id">
+                                                <a onclick="fback(@Model.Id, @spn)" class="pointer btn-fback hidden">
+                                                    Quay về
+                                                </a>
+
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuel", "Flights"))
+                                                {
+                                                    <a onclick="refuel(@Model.Id, @spn, 1, @order)" class="pointer btn-save hidden btn-save-@Model.Id">
+                                                        Lưu
+                                                    </a>
+                                                }
+                                                <a class="hidden img-wait-@Model.Id"><img src="~/admin-lte2.4/img/wait.svg" height="30" /></a>
+
+
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuel", "Flights"))
+                                                {
+                                                    <a onclick="showtruck(@Model.Id, @trucks.Where(t => t.IsActive != 0).Count())" class="pointer btn-assign btn-assign-@Model.Id">@(Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(ri.TruckId) ? "Phân công lại" : "Phân công")</a>
+                                                }
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JEdit", "Flights"))
+                                                {
+                                                    <a class="pointer" onclick="getbyId(@Model.Id)">
+                                                        Sửa
+                                                    </a>
+                                                }
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("Cancel", "Flights"))
+                                                {
+                                                    <a class="pointer btn-cancel" onclick="cancel(@Model.Id)">
+                                                        Hủy chuyến
+                                                    </a>
+                                                }
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("NotRefuel", "Flights"))
+                                                {
+                                                    <a class="pointer btn-notrefuel" onclick="notRefuel(@Model.Id)">
+                                                        Không lấy dầu
+                                                    </a>
+                                                }
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("Follow", "Flights"))
+                                                {
+                                                    <a class="pointer btn-follow" onclick="follow(@Model.Id)">
+                                                        @(Model.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                                    </a>
+                                                }
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JDelete", "Flights"))
+                                                {
+                                                    <a onclick="fdelete(@Model.Id)" class="pointer">Xóa</a>
+                                                }
+                                            </div>
+                                            if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuelInfo", "Flights"))
+                                            {
+                                                <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                                            }
+                                            if (Model.RefuelItems.Count > 0 && report != null && !report.IsActive && Megatech.FMS.Web.AppContext.IsShowLink("EditBM10103", "Reports"))
+                                            {
+
+                                                <span>Đã giám sát</span>
+                                            }
+                                            else if (Model.RefuelItems.Count > 0 && Megatech.FMS.Web.AppContext.IsShowLink("CreateBM10103", "Reports"))
+                                            {
+                                                <a class="lightbox" target="_blank" href="@Url.Action("CreateBM10103","Reports", new { flightId = Model.Id, url = HttpContext.Current.Request.Url.AbsoluteUri })">Giám sát</a>
+                                            }
+                                            if (Megatech.FMS.Web.AppContext.IsShowLink("BM7009", "Reports"))
+                                            {
+                                                <a class="pointer btn-edit" onclick="getProperty(@Model.Id)">
+                                                    Khác
+                                                </a>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                        }
+                    }
+                </tr>
+                i++;
+            }
+
+            foreach (var ri in t_temps)
+            {
+                var assinged = Model.RefuelItems.FirstOrDefault(r => r.TruckId == ri.Id && r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT);
+                var truck_assign = temp_ta.FirstOrDefault(t => t.TruckId == ri.Id);
+                bool isaxtract_color = Model.RefuelItems.Any(r => r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT && r.TruckId == ri.Id);
+                <tr class="model item-flight-@Model.Id text-center item parent @((!Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(ri.Id) && i > 0)?"hidden fhide":"item-color") @(Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(ri.Id) ? "warning" :Model.Status == FlightStatus.REFUELED?"success": "") @(Model.Follow == 1 ?"follow":"")">
+                    @if (i == 0)
+                    {
+                        <td class="rspn check" rowspan="@spn">
+                            @Html.CheckBox("chkSelect", false, new { value = Model.Id, @class = "is-check c-copy" })
+                        </td>
+
+                        <td class="order rspn" rowspan="@spn">
+                            @(index++)
+                        </td>
+                        <td class="rspn" rowspan="@spn">
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftType && c.EntityId == Model.Id) != null ? "changed" : "")" id="AircraftType">@Model.AircraftType</span><br />
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.AircraftCode && c.EntityId == Model.Id) != null ? "changed" : "")" id="AircraftCode">@Model.AircraftCode</span><br />
+
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Code && c.EntityId == Model.Id) != null ? "changed" : "")" id="Code"> @Model.Code </span><br />
+                            <span>@(Model.FlightType == FlightType.DOMESTIC ? "Nội địa" : "Quốc tế")</span>
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+
+                            <span id="RouteName" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.RouteName && c.EntityId == Model.Id) != null ? "changed" : "")"> @Model.RouteName </span><br />
+                            <span id="FlightCarry" class="@(lst_changelot.FirstOrDefault(c => c.EntityId == Model.Id && c.NewValues == (Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")) != null ? "changed" : "")">
+                                @(Model.FlightCarry == FlightCarry.CCO ? "CCO" : Model.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")
+                            </span>
+                        </td>
+                        <td class="rspn next-sh-button sh-refuel-item-@Model.Id" rowspan="@spn" onclick="refuelInfo(@Model.Id)">
+                            <span id="ArrivalScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @(Model.ArrivalScheduledTime != null && Model.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year ? Convert.ToDateTime(Model.ArrivalScheduledTime).ToString("HH:mm") : "---")
+                            </span>
+                            <br />
+                            <span id="DepartureScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Convert.ToDateTime(Model.DepartureScheduledTime).ToString("HH:mm")
+                            </span>
+                        </td>
+                        <td class="rspn set-color" rowspan="@spn" data-val="@Model.RefuelScheduledTime">
+                            <span id="RefuelScheduledHours" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm") && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Convert.ToDateTime(Model.RefuelScheduledTime).ToString("HH:mm")
+                            </span>
+                            <br />
+                            <span id="Parking" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Parking && c.EntityId == Model.Id) != null ? "changed" : "")">
+                                @Html.DisplayFor(modelItem => Model.Parking)
+                            </span>
+                        </td>
+                        <td class="rspn" rowspan="@spn">
+                            <span id="EstimateAmount">
+                                @Math.Round(Model.EstimateAmount).ToString("#,##0")
+                            </span>
+                        </td>
+                    }
+                        <td class="@(isaxtract_color?"extract-color":"")">
+                            @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.Id))
+                            {
+                                <span class="fa fa-check-square" style="color:#ddd"></span>
+                            }
+                            else
+                            {
+                                if (Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Count() > 0)
+                                {
+                                    <input disabled name="trucks" type="checkbox" value="@ri.Id" class="trucks checkbox2 i-truck-@Model.Id" @(Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(ri.Id) ? "checked" : "") />
+                                }
+                                else
+                                {
+                                    <input name="trucks" type="checkbox" value="@ri.Id" class="trucks checkbox2" disabled />
+                                }
+                            }
+
+                            <input name="SortOrder" type="number" min="0" size="3" class="sort-order" disabled="disabled" />
+                        </td>
+                    <td class="@(assinged == null ?"sh-info":"") @(isaxtract_color?"extract-color":"")">
+                        <span>@ri.Code</span>
+
+                    </td>
+                    <td class="truck-@ri.Id @(assinged == null ?"sh-info":"") @(isaxtract_color?"extract-color":"")">
+                        @{
+                            var selected_Id = -1;
+                            if (assinged != null)
+                            {
+                                if (assinged.DriverId != null)
+                                {
+                                    selected_Id = (int)assinged.DriverId;
+                                }
+                            }
+                            else if (truck_assign != null)
+                            {
+                                selected_Id = truck_assign.DriverId;
+                            }
+                        }
+                        @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.Id) && driver.FirstOrDefault(u => u.Id == selected_Id) != null)
+                        {
+                            <span>
+                                @driver.FirstOrDefault(u => u.Id == selected_Id).FullName
+                            </span>
+                        }
+                        else
+                        {
+                            if (selected_Id > 0)
+                            {
+                                @Html.DropDownList("DriverId" + Model.Id + "_" + ri.Id, new SelectList(driver, "Id", "FullName", selected_Id), htmlAttributes: new { @onchange = "changeUserGroup1(" + Model.Id + "," + ri.Id + ",this.value)", @class = "select2 form-control driverId d-driverId-" + Model.Id, @disabled = "" })
+                            }
+                            else
+                            {
+                                @Html.DropDownList("DriverId" + Model.Id + "_" + ri.Id, new SelectList(driver, "Id", "FullName"), htmlAttributes: new { @onchange = "changeUserGroup1(" + Model.Id + "," + ri.Id + ",this.value)", @class = "select2 form-control driverId d-driverId-" + Model.Id, @disabled = "" })
+                            }
+                        }
+                    </td>
+                    <td class="truck-@ri.Id @(assinged == null ?"sh-info":"") @(isaxtract_color?"extract-color":"")">
+                        @{
+                            selected_Id = -1;
+                            if (assinged != null)
+                            {
+                                if (assinged.OperatorId != null)
+                                {
+                                    selected_Id = (int)assinged.OperatorId;
+                                }
+                            }
+                            else if (truck_assign != null)
+                            {
+                                selected_Id = truck_assign.TechnicalerId;
+                            }
+                        }
+                        @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.Id) && oper.FirstOrDefault(u => u.Id == selected_Id) != null)
+                        {
+                            <span>
+                                @oper.FirstOrDefault(u => u.Id == selected_Id).FullName
+                            </span>
+                        }
+                        else
+                        {
+                            if (selected_Id > 0)
+                            {
+                                @Html.DropDownList("OperatorId" + Model.Id + "_" + ri.Id, new SelectList(oper, "Id", "FullName", selected_Id), htmlAttributes: new { @class = "select2 form-control operatorId d-operatorId-" + Model.Id, @disabled = "" })
+                            }
+                            else
+                            {
+                                @Html.DropDownList("OperatorId" + Model.Id + "_" + ri.Id, new SelectList(oper, "Id", "FullName"), htmlAttributes: new { @class = "select2 form-control operatorId d-operatorId-" + Model.Id + "", @disabled = "" })
+                            }
+                        }
+                    </td>
+                    <td class="truck-@ri.Id @(assinged == null ?"sh-info":"")" @(isaxtract_color ? "extract-color" : "")>
+                        @{
+                            selected_Id = -1;
+                            if (assinged != null)
+                            {
+                                if (assinged.UserId != null)
+                                {
+                                    selected_Id = (int)assinged.UserId;
+                                }
+                            }
+                            else if (truck_assign != null)
+                            {
+                                selected_Id = (int)truck_assign.UserId;
+                            }
+                        }
+                        @if (Model.RefuelItems.Where(r => (r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.Id) && user.FirstOrDefault(u => u.Id == selected_Id) != null)
+                        {
+                            <span>
+                                @user.FirstOrDefault(u => u.Id == selected_Id).FullName
+                            </span>
+                        }
+                        else
+                        {
+                            if (selected_Id > 0)
+                            {
+                                @Html.DropDownList("UserId" + Model.Id + "_" + ri.Id, new SelectList(user, "Id", "FullName", selected_Id), "---", htmlAttributes: new { @class = "select2 form-control userId d-userId-" + Model.Id, @disabled = "" })
+                            }
+                            else
+                            {
+                                @Html.DropDownList("UserId" + Model.Id + "_" + ri.Id, new SelectList(user, "Id", "FullName"), "---", htmlAttributes: new { @class = "select2 form-control userId d-userId-" + Model.Id, @disabled = "" })
+                            }
+                        }
+                    </td>
+                    <td>
+                        <input disabled name="all_trucks" type="checkbox" value="" title="Áp dụng cho tất cả các chuyến bay có xe tra nạp này." class="all-trucks checkbox2" />
+                    </td>
+                    @if (i == 0)
+                    {
+                        if (viewOnly)
+                        {
+                            <td class="rspn next-sh-button" rowspan="@spn">
+                                <div class="action">
+                                    <span class="btn-header fa fa-edit"></span>
+                                    <div class="btn-content">
+                                        <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                                    </div>
+                                </div>
+                            </td>
+                        }
+                        else
+                        {
+                            <td class="rspn" rowspan="@spn">
+                                <div class="action">
+                                    <span class="btn-header fa fa-edit"></span>
+                                    <div class="btn-content">
+                                        @if (Model.Status == FlightStatus.CANCELED || Model.Status == FlightStatus.NOTREFUEL)
+                                        {
+                                            <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                                        }
+                                        else
+                                        {
+                                            <div class="hide-cancel-@Model.Id">
+                                                <a onclick="fback(@Model.Id, @spn)" class="pointer btn-fback hidden">
+                                                    Quay về
+                                                </a>
+
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuel", "Flights"))
+                                                {
+                                                    <a onclick="refuel(@Model.Id, @spn, 1, @order)" class="pointer btn-save hidden btn-save-@Model.Id">
+                                                        Lưu
+                                                    </a>
+                                                }
+                                                <a class="hidden img-wait-@Model.Id"><img src="~/admin-lte2.4/img/wait.svg" height="30" /></a>
+
+
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuel", "Flights"))
+                                                {
+                                                    <a onclick="showtruck(@Model.Id, @trucks.Where(t => t.IsActive != 0).Count())" class="pointer btn-assign btn-assign-@Model.Id">@(Model.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || r.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT).Select(f => f.TruckId).Contains(ri.Id) ? "Phân công lại" : "Phân công")</a>
+                                                }
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JEdit", "Flights"))
+                                                {
+                                                    <a class="pointer" onclick="getbyId(@Model.Id)">
+                                                        Sửa
+                                                    </a>
+                                                }
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("Cancel", "Flights"))
+                                                {
+                                                    <a class="pointer btn-cancel" onclick="cancel(@Model.Id)">
+                                                        Hủy chuyến
+                                                    </a>
+                                                }
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("NotRefuel", "Flights"))
+                                                {
+                                                    <a class="pointer btn-notrefuel" onclick="notRefuel(@Model.Id)">
+                                                        Không lấy dầu
+                                                    </a>
+                                                }
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("Follow", "Flights"))
+                                                {
+                                                    <a class="pointer btn-follow" onclick="follow(@Model.Id)">
+                                                        @(Model.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                                    </a>
+                                                }
+                                                @if (Megatech.FMS.Web.AppContext.IsShowLink("JDelete", "Flights"))
+                                                {
+                                                    <a onclick="fdelete(@Model.Id)" class="pointer">Xóa</a>
+                                                }
+                                            </div>
+                                            if (Megatech.FMS.Web.AppContext.IsShowLink("JRefuelInfo", "Flights"))
+                                            {
+                                                <a onclick="refuelInfo(@Model.Id)" class="pointer">Chi tiết</a>
+                                            }
+                                            if (Model.RefuelItems.Count > 0 && report != null && !report.IsActive && Megatech.FMS.Web.AppContext.IsShowLink("EditBM10103", "Reports"))
+                                            {
+                                                <span>Đã giám sát</span>
+                                            }
+                                            else if (Model.RefuelItems.Count > 0 && Megatech.FMS.Web.AppContext.IsShowLink("CreateBM10103", "Reports"))
+                                            {
+                                                <a class="lightbox" target="_blank" href="@Url.Action("CreateBM10103","Reports", new { flightId = Model.Id, url = HttpContext.Current.Request.Url.AbsoluteUri })">Giám sát</a>
+                                            }
+                                            if (Megatech.FMS.Web.AppContext.IsShowLink("BM7009", "Reports"))
+                                            {
+                                                <a class="pointer btn-edit" onclick="getProperty(@Model.Id)">
+                                                    Khác
+                                                </a>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                        }
+                    }
+                </tr>
+                i++;
+            }
+           
+        }
+    }
+    <tr class="item-flight-after-@Model.Id sh-div hidden">
+        <td colspan="15">
+            <div class="row">
+                <div class="col-md-12">
+                    <span>Hãng bay: </span>
+                    @if (Model.Airline != null)
+                    {
+                        <span class="bold @(lst_changelot.FirstOrDefault(c => c.NewValues == Model.Airline.Name && c.EntityId == Model.Id) != null ? "changed" : "")">@Model.Airline.Name</span>
+                    }
+                    else
+                    {
+                        <span>---</span>
+                    }
+                </div>
+                <div class="col-md-12">
+                    <h4>Ghi chú</h4>
+                    <hr />
+                    <div id="Note-@Model.Id">@Html.Raw(Model.Note)</div>
+                </div>
+                <div class="col-md-12">
+                    @if (Megatech.FMS.Web.AppContext.IsShowLink("CreateExtract", "Flights"))
+                    {
+                        <a class="lightbox pull-right" target="_blank" href="@Url.Action("CreateExtract", new { flightId = Model.Id, returnUrl = Request.Url.PathAndQuery })">
+                            <i class="fa fa-plus"></i> Tạo mới hút nhiên liệu
+                        </a>
+                    }
+                    @if (User.IsInRole("Super Admin"))
+                    {
+                        <a style="margin-right: 20px;" class="lightbox pull-right" target="_blank" href="@Url.Action("CreateRefuelItem", new { flightId = Model.Id,returnUrl = Request.Url.PathAndQuery })"><i class="fa fa-plus"></i> Tạo mới tra nạp</a>
+                    }
+                    <br />
+                    <div id="refuelInfo_@Model.Id" class="text-center">
+                        <img src="~/admin-lte2.4/img/wait.svg" id="img_wait" height="100" />
+                    </div>
+
+                </div>
+            </div>
+        </td>
+    </tr>
+}
+<script>
+    $(".model .select2").select2();
+</script>

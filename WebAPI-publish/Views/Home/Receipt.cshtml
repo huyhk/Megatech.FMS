@@ -1,0 +1,14 @@
+﻿@using FMS.Data;
+@model Receipt
+@{
+    ViewBag.Title = "Receipt";
+}
+@{ 
+    var image = Model.Image;
+    var base64 = Convert.ToBase64String(image);
+    var imgSrc = String.Format("data:image/jpeg;base64,{0}", base64);
+
+}
+<h2>Receipt @Model.Number</h2>
+<img src="@imgSrc"/>
+

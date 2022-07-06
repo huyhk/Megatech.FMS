@@ -1,0 +1,281 @@
+﻿@using Megatech.FMS.Web.Models
+@model IEnumerable<FMS.Data.User>
+
+@{
+    ViewBag.Title = "Người dùng";
+
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Người dùng" }
+    );
+
+    var airports = (IList<Airport>)ViewBag.Airports;
+
+    string select_val = "";
+    if (Request["r"] != null)
+    {
+        select_val = Request["r"].ToString();
+    }
+    var role = (IdentityRole)ViewBag.Role;
+    var roles = (List<IdentityRole>)ViewBag.Roles;
+    var selectList = new SelectList(roles, "Id", "Name", select_val);
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+}
+
+<div class="row">
+    <div class="col-xs-12">
+        <div class="box">
+            <div class="box-header">
+                <h3 class="box-title">Danh sách người dùng @(role != null ? " - " + role.Name : "")</h3>
+                @if (!viewOnly)
+                {
+                    <a class="btn btn-primary pull-right" href="@Url.Action("Create")"><i class="fa fa-plus"></i> Tạo mới</a>
+                }
+                <div class="pull-right">
+                    @using (Html.BeginForm("Index", "Users", FormMethod.Get, null))
+                    {
+                        <div class="col-md-5">
+                            @Html.DropDownList("roles",
+                               selectList,
+                               "Chọn nhóm người dùng",
+                               new { @class = "form-control select2 pull-right", onchange="change" })
+                        </div>
+                        <div class="col-md-4">
+                            <input name="keyword" type="text" class="form-control text-box" value="@Request["keyword"]" placeholder="Nhập từ khóa" />
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary search"><i class="fa fa-search"></i> <span>Tìm kiếm</span></button>
+                        </div>
+                    }
+                </div>
+
+                @*<div class="col-md-6 pull-right">
+                        @Html.DropDownList("roles",
+                                selectList,
+                                "Chọn nhóm người dùng",
+                                new { @class = "form-control select2", onchange="change" })
+                    </div>*@
+            </div>
+            <!-- /.box-header -->
+            <div class="box-body">
+                <table class="table table-bordered table-hover">
+                    <tr>
+                        <th>
+                            Tên đăng nhập
+                        </th>
+                        <th>
+                            Tên đầy đủ
+                        </th>
+                        <th>
+                            Email
+                        </th>
+                        @*<th style="width:200px">
+                                Sân bay
+                            </th>*@
+                        <th>
+                            Trạng thái
+                        </th>
+                        <th>Thao tác</th>
+                    </tr>
+
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.UserName)
+                            </td>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.FullName)
+                            </td>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.Email)
+                            </td>
+                            @*<td>
+                                    <div class="airport" data-id="@item.Id">
+                                        <span>@(item.Airport == null ? "" : item.Airport.Name)</span>
+                                        @Html.DropDownList("AirportId", new SelectList(airports, "Id", "Name", item.AirportId), "---- Sân bay ----")
+                                    </div>
+                                </td>*@
+                            <td>
+                                <label class="checkbox-inline">
+                                    <input type="checkbox" class="chk" @(item.IsEnabled ? "checked" : "") data-toggle="toggle" data-on="Hoạt động" data-off="Tạm khóa" data-size="mini" data-id="@item.Id">
+                                </label>
+                            </td>
+                            @if (!viewOnly)
+                            {
+                                <td>
+                                    @Html.ActionLink("Đặt mật khẩu", "SetPassword", new { id = item.Id }, new { @class = "setpass", data_id = item.Id }) |
+                                    <a href="@Url.Action("Edit", new { id = item.Id})">
+                                        Sửa |
+                                    </a>
+                                    <a href="@Url.Action("Delete", new { id = item.Id})">
+                                        Xóa
+                                    </a>
+                                    @*@Html.ActionLink("Tạm khóa", "Suspend", new { id = item.Id },new { @class = "suspend", data_id = item.Id, data_enable = item.IsEnabled })*@
+                                </td>
+                            }
+                            else
+                            {
+                                <td></td>
+                            }
+                        </tr>
+                    }
+                </table>
+            </div>
+            <div class="box-footer">
+                @Html.Pager(new PagerOptions { ItemCount = ViewBag.ItemCount, VisibleItemCount = 7, PageSize = 20 }, null)
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-password">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Đặt mật khẩu</h4>
+            </div>
+            @using (Ajax.BeginForm("SetPassword", "Users", new AjaxOptions { OnSuccess = "closemodal", HttpMethod = "Post" }, new { role = "form" }))
+            {
+                @Html.Hidden("id")
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Mật khẩu mới</label>
+                        <div class="col-md-8">
+                            @Html.TextBox("password", null, new { placeholder = "Nhập mật khẩu mới", @class = "form-control text-box single-line" })
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                </div>
+            }
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+
+
+<div class="modal fade" id="modal-suspend">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Khóa/mở khóa người dùng</h4>
+            </div>
+            @using (Ajax.BeginForm("Suspend", null, new AjaxOptions { OnSuccess = "closesuspend", HttpMethod = "Post" }, new { role = "form" }))
+            {
+                @Html.Hidden("id")
+                <div class="modal-body">
+
+                    <div class="form-group">
+                        <label class="control-label col-md-3">Đặt trạng thái</label>
+                        <div class="col-md-9">
+                            <input type="checkbox" name="isEnabled" id="isEnabled" />
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            }
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+<!-- /.modal -->
+@section Scripts {
+    <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+    <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $(".setpass").click(function () {
+                $("#id").val($(this).data("id"));
+                $('#modal-password').modal('show');
+                return false;
+            });
+
+            $(".suspend").click(function () {
+                $("#id").val($(this).data("id"));
+                $("#isEnabled").val($(this).data("isEnable"));
+                $('#modal-suspend').modal('show');
+                return false;
+            });
+
+            $(".airport select").hide();
+            $(".airport").hover(
+                function () {
+                    $("span", this).hide();
+                    $("select", this).show();
+                },
+                function () {
+                    $("span", this).show();
+                    $("select", this).hide();
+                });
+
+            $(".airport select").change(function () {
+                val = $(this).val();
+                text = $("option:selected", this).text();
+                id = $(this).parent().data("id");
+                label = $(this).siblings("span");
+                $.post("@Url.Action("UpdateAirport")", { id: id, newAirportId: val }, function (data) {
+                    alert(data.result);
+                    if (data.result == "OK") {
+                        label.html(text);
+                    }
+                });
+            })
+
+            $(".chk").change(function () {
+                if (confirm("bạn muốn thay đổi trạng thái người dùng này")) {
+                    val = this.checked;
+                    id = $(this).data("id");
+                    $.post("@Url.Action("Suspend")", { id: id, isEnabled: val }, function (data) { });
+                }
+                else {
+                    if ($(this).is(':checked')) {
+                        $(this).prop('checked', false);
+                    }
+                    else
+                        $(this).prop('checked', true);
+                }
+            })
+        });
+
+        function closemodal(data)
+        {
+            if (data.result == "OK")
+                $('#modal-password').modal('hide');
+
+        }
+
+        $(function () {
+            //$(".select2").select2();
+            //$('.select2').on('select2:select', function (e) {
+            //    var data = e.params.data;
+            //    change(data);
+            //});
+        })
+        @*function change(data)
+        {
+            var val = data.id;
+            window.location = "@Url.Action("index")" + "?r=" + val;
+        }*@
+    </script>
+}

@@ -1,0 +1,92 @@
+﻿.table-bordered,
+.table-bordered > thead > tr > th, .table-bordered > tbody > tr > th, .table-bordered > tfoot > tr > th, .table-bordered > thead > tr > td, .table-bordered > tbody > tr > td, .table-bordered > tfoot > tr > td {
+    border: 1px solid #D4D4D4 !important;
+    vertical-align: middle;
+}
+
+.kt-cb span {
+    display: block;
+    border-top: solid 1px #ccc;
+    margin-top: 5px;
+    padding-top: 5px;
+}
+
+.padding-0 {
+    padding: 0px !important;
+}
+
+.w-230 {
+    width: 230px;
+}
+
+.next-sh-button {
+    cursor: pointer;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.line-write {
+    float: left;
+    width: 100%;
+    margin-bottom: 20px;
+    border-bottom: dotted 1px gray;
+    margin-top: 20px
+}
+
+.index-account {
+    margin: 20px 0 0 25px;
+}
+
+    .index-account ul {
+        margin: 0px;
+        padding: 0px;
+        list-style: none;
+    }
+
+.error {
+    color: red;
+    font-style: italic;
+}
+
+.btn-delete {
+    color: #fff !important;
+    background-color: red;
+}
+
+.log {
+    position: fixed;
+    top: 15%;
+    left: 1%;
+    z-index: 9;
+}
+
+    .log a {
+        color: #fff !important;
+        background-color: #367fa9;
+        padding: 8px 25px 8px 24px;
+        border-radius: 5px 5px 0 0;
+    }
+
+    .log ul {
+        background-color: #fff;
+        position: absolute;
+        left: 0px;
+        top: 29px;
+        border: solid 1px #367fa9;
+        padding: 10px;
+        list-style: none;
+        font-size: 15px;
+        border-radius: 0 0 5px 5px;
+    }
+
+        .log ul li {
+            border-bottom: solid 1px #ddd;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+        }

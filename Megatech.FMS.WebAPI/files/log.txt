@@ -1,0 +1,21 @@
+[15-05-2021 15:14:26] [POST] %2 [15-05-2021 15:14:26] [POST] %2 [15-05-2021 15:14:26] [POST] %2 [15-05-2021 15:14:28] [POST] %2 [15-05-2021 15:14:29] [POST] %2 [15-05-2021 15:14:29] [POST] %2 [15-05-2021 15:14:30] [POST] %2 [15-05-2021 15:15:24] [POST] %2 [15-05-2021 15:15:29] [POST] %2 [15-05-2021 15:15:29] [POST] %2 [15-05-2021 15:15:29] [POST] %2 [15-05-2021 15:15:29] [POST] %2 [15-05-2021 15:15:29] [POST] %2 [15-05-2021 15:15:29] [POST] %2 [15-05-2021 15:17:34] [POST] Start post 4467
+[15-05-2021 15:17:34] [POST] Flight code VN3342
+[15-05-2021 15:17:34] [POST] Truck No DLI-01 test
+[15-05-2021 15:17:43] [POST] Save refuel changes
+[15-05-2021 15:17:45] [POST] Save flight changes
+[15-05-2021 15:17:46] [POST] select posted item
+[15-05-2021 15:17:46] [POST] END Post
+[15-05-2021 15:18:22] [POST] Start post 4467
+[15-05-2021 15:18:22] [POST] Flight code VN3342
+[15-05-2021 15:18:22] [POST] Truck No DLI-01 test
+[15-05-2021 15:18:23] [POST] Save refuel changes
+[15-05-2021 15:18:23] [POST] Save flight changes
+[15-05-2021 15:18:33] [POST] select posted item
+[15-05-2021 15:18:35] [POST] END Post
+[15-05-2021 15:19:21] [POST] Start post 4467
+[15-05-2021 15:19:21] [POST] Flight code VN3342
+[15-05-2021 15:19:21] [POST] Truck No DLI-01 test
+[15-05-2021 15:19:23] [POST] Save refuel changes
+[15-05-2021 15:19:23] [POST] Save flight changes
+[15-05-2021 15:19:27] [POST] select posted item
+[15-05-2021 15:19:27] [POST] END Post

@@ -1,0 +1,145 @@
+﻿@model FMS.Data.ProductPrice
+
+@{
+    ViewBag.Title = "Sửa giá nguyên liệu";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+    var error = "";
+    if(ViewBag.Error != null)
+    {
+        error = ViewBag.Error;
+    }
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Giá nguyên liệu" }
+    );
+
+}
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+<div class="form-horizontal">
+    <hr />
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+    @Html.HiddenFor(model => model.Id)
+    <div class="form-group">
+        <div class="col-md-offset-2 col-md-10">
+            <input type="submit" value="Lưu" class="btn btn-primary" onclick="changeDate()" />
+            @Html.ActionLink("Trở về danh sách", "Index")
+        </div>
+    </div>
+    <div class="content">
+        <div class="error">@error</div>
+        <div class="form-group">
+            @Html.Label("Sản phẩm", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownList("ProductId", null, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>    
+        </div>
+        <div class="form-group">
+            @Html.Label("Khách hàng", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownList("CustomerId", null, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Ngày bắt đầu", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <div class="input-group">
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                    <input type="text" id="StartDate" class="form-control pull-right datepicker" value="@Model.StartDate.ToString("dd/MM/yyyy")">
+                    @Html.Hidden("StartDate")
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Ngày kết thúc", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <div class="input-group">
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                    <input type="text" id="EndDate" class="form-control pull-right datepicker" value="@Model.EndDate.Value.ToString("dd/MM/yyyy")">
+                    @Html.Hidden("EndDate")
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Giá", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <div class="input-group">
+                    <div class="input-group-addon">
+                        <i class="fa fa-dollar"></i>
+                    </div>
+                    <input type="text" name="Price" class="form-control pull-right" value="@Math.Round(Model.Price)">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="col-md-offset-2 col-md-10">
+            <input type="submit" value="Lưu" class="btn btn-primary" onclick="changeDate()" />
+            @Html.ActionLink("Trở về danh sách", "Index")
+        </div>
+    </div>
+</div>
+}
+
+@section Scripts {
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+    <script>
+
+
+        function closemodal(data) {
+            if (data.result == "OK") {
+                $('#modal-create').modal('hide');
+                location.reload();
+            }
+            else
+                alert(data.message);
+        }
+
+        $(function () {
+            $(".select2").select2();
+            $(".datepicker").datepicker({ format: "dd/mm/yyyy", autoclose: true });
+
+            $(".create-new").click(function () {
+
+                $('#modal-create').modal('show');
+
+
+                return false;
+            });
+
+            $("#chk-all").click(function () {
+
+                val = $(this).is(":checked");
+                $(this).parentsUntil("table").find("input[type=checkbox]").prop("checked", val);
+            })
+        })
+        function change(data)
+        {
+            var val = data.id;
+            window.location = "@Url.Action("index")" + "?a=" + val;
+        }
+
+        function changeDate()
+        {
+            $(".datepicker").each(function () {
+                val = $(this).val();
+                var pattern = /(\d{2})\/(\d{2})\/(\d{4})/;
+               $(this).siblings("input[type=hidden]").val(val.replace(pattern, "$3/$2/$1"));
+            });
+            return true;
+        }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+}

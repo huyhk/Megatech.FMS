@@ -1,0 +1,22 @@
+﻿{
+
+  "configuration": [
+    {
+      "name": "invoice_export",
+      "login_url": "",
+      "user_name": "",
+      "password": "",
+      "execute_url": "",
+      "interval": ""
+
+    },
+    {
+      "name": "inventory_export",
+      "login_url": "",
+      "user_name": "",
+      "password": "",
+      "execute_url": "",
+      "interval": ""
+    }
+  ]
+}

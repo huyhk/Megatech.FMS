@@ -1,0 +1,69 @@
+﻿@using Megatech.FMS.Web.Models
+@model LoginViewModel
+@{
+    Layout = "~/Views/Shared/_GuestLayout.cshtml";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <section id="loginForm">
+            @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { role = "form" }))
+            {
+                @Html.AntiForgeryToken()
+                <div class="login-box">
+                    <div class="login-logo">
+                        <a href="~/">
+                            @*<b>FMS</b>Delivery*@
+
+                            <img src="~/admin-lte2.4/img/logo.png" />
+                        </a>
+                    </div>
+                    <!-- /.login-logo -->
+                    <div class="login-box-body">
+                        <p class="login-box-msg">Đăng nhập hệ thống</p>
+                        <div class="form-group has-feedback">
+                            <input type="text" class="form-control" placeholder="UserName" name="UserName">
+                            <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
+                        </div>
+                        <div class="form-group has-feedback">
+                            <input type="password" class="form-control" placeholder="Password" name="Password">
+                            <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary btn-block btn-flat">Đăng nhập</button>
+                            </div>
+                            <div class="col-xs-8">
+                                <div class="checkbox icheck mg-top">
+                                    <label>
+                                        <input type="checkbox"> Ghi nhớ lần sau
+                                    </label>
+                                </div>
+                            </div>
+                            <!-- /.col -->
+                            <div class="col-xs-4">
+                                <div class="mg-top">
+                                    <a href="@Url.Action("ForgotPassword")">Quên mật khẩu</a>
+                                </div>
+                            </div>
+                            <!-- /.col -->
+                        </div>
+                    </div>
+                    <div class="row mg-top">
+                        <div class="col-md-6">
+                            <img src="~/admin-lte2.4/img/partner_1.jpg" />
+                        </div>
+                        <div class="col-md-6">
+                            <img src="~/admin-lte2.4/img/partner_2.jpg" />
+                        </div>
+                    </div>
+                    <!-- /.login-box-body -->
+                </div>
+                <!-- /.login-box -->
+            }
+        </section>
+    </div>
+
+</div>
+
+

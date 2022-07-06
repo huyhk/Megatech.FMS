@@ -1,0 +1,235 @@
+﻿
+@model IEnumerable<FMS.Data.ProductPrice>
+
+@{
+    ViewBag.Title = "Giá nguyên liệu";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Giá nguyên liệu" }
+    );
+
+    var selectList = new SelectList(ViewBag.Airlines, "Id", "Name");
+    var lstProduct = new SelectList(ViewBag.Products, "Id", "Name");
+
+    var num = new System.Globalization.NumberFormatInfo();
+    num.NumberDecimalSeparator = ",";
+    num.NumberGroupSeparator = ".";
+    var changeLogs = (List<ChangeLog>)ViewBag.ChangeLogs;
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" />
+
+<div class="box">
+    @Html.Partial("_ChangeLog", changeLogs)
+    <div class="box-header">
+
+        @if (!User.IsInRole("Quản lý tổng công ty"))
+        {
+            <a class="btn btn-primary pull-right create-new" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+        }
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered">
+            <tr>
+                <th class="text-center"><input type="checkbox" id="chk-all" /></th>
+                <th>
+                    Sản phẩm
+                </th>
+                <th>
+                    Khách hàng
+                </th>
+                <th>
+                    Ngày bắt đầu
+                </th>
+                <th>
+                    Ngày kết thúc
+                </th>
+                <th class="text-right">
+                    Giá
+                </th>
+
+                <th>Thao tác</th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td class="text-center">
+                        <input value="@item.Id" type="checkbox" />
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Product.Name)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Customer.Name)
+                    </td>
+                    <td>
+                        @item.StartDate.ToString("dd/MM/yyyy")
+                    </td>
+
+                    <td>
+                        @item.EndDate.Value.ToString("dd/MM/yyyy")
+                    </td>
+                    <td class="text-right">
+                        @*@item.Price.ToString("#,##0.00", num)*@
+                        @*@Html.DisplayFor(modelItem => item.Price)*@
+                        @Math.Round(item.Price).ToString("#,##0")
+                    </td>
+                    <td>
+                        @if (!User.IsInRole("Quản lý tổng công ty"))
+                        {
+                            <a href="@Url.Action("Edit", new { id = item.Id})">
+                                Sửa |
+                            </a>
+                            <a onclick="jdelete(@item.Id)" class="pointer">
+                                Xóa
+                            </a>
+                        }
+
+                    </td>
+                </tr>
+            }
+
+        </table>
+
+    </div>
+</div>
+
+<div class="modal fade" id="modal-create">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Thêm giá mới</h4>
+            </div>
+            @using (Ajax.BeginForm("Create", "ProductPrices", new AjaxOptions { OnSuccess = "closemodal", HttpMethod = "Post" }, new { autocomplete = "off" }))
+            {
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="control-label ">Sản phẩm</label>
+                        @Html.DropDownList("ProductId", lstProduct, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label ">Khách hàng</label>
+                        @Html.DropDownList("CustomerId", selectList, "Tất cả", htmlAttributes: new { @class = "form -control select2", style = "width:100%; float:none" })
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày bắt đầu :</label>
+
+                        <div class="input-group">
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                            <input type="text" id="StartDate" class="form-control pull-right datepicker">
+                            @Html.Hidden("StartDate")
+                        </div>
+
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày kết thúc :</label>
+
+                        <div class="input-group">
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                            <input type="text" id="EndDate" class="form-control pull-right datepicker">
+                            @Html.Hidden("EndDate")
+                        </div>
+
+                    </div>
+                    <div class="form-group">
+                        <label>Giá:</label>
+
+                        <div class="input-group">
+                            <div class="input-group-addon">
+                                <i class="fa fa-dollar"></i>
+                            </div>
+                            <input type="text" name="Price" class="form-control pull-right ">
+                        </div>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary" onclick="changeDate()">Lưu</button>
+                </div>
+            }
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+
+@section Scripts {
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+    <script>
+
+
+        function closemodal(data) {
+            if (data.result == "OK") {
+                $('#modal-create').modal('hide');
+                location.reload();
+            }
+            else
+                alert(data.message);
+        }
+
+        $(function () {
+            $(".select2").select2();
+            $(".datepicker").datepicker({ format: "dd/mm/yyyy", autoclose: true });
+
+            $(".create-new").click(function () {
+
+                $('#modal-create').modal('show');
+                return false;
+            });
+
+            $("#chk-all").click(function () {
+
+                val = $(this).is(":checked");
+                $(this).parentsUntil("table").find("input[type=checkbox]").prop("checked", val);
+            })
+        })
+        function change(data)
+        {
+            var val = data.id;
+            window.location = "@Url.Action("index")" + "?a=" + val;
+        }
+
+        function changeDate()
+        {
+            $(".datepicker").each(function () {
+                val = $(this).val();
+                var pattern = /(\d{2})\/(\d{2})\/(\d{4})/;
+               $(this).siblings("input[type=hidden]").val(val.replace(pattern, "$3/$2/$1"));
+            });
+            return true;
+        }
+        function jdelete(id) {
+            if (confirm("Bạn chắc chắn muốn xóa giá nguyên liệu này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDelete")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            window.location.reload();
+                        }
+                    },
+                });
+            }
+            return false;
+        }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+}

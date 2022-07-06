@@ -1,0 +1,91 @@
+﻿
+@using System;
+@model IEnumerable<FMS.Data.Airport>
+
+@{
+    ViewBag.Title = "Sân bay";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Sân bay" }
+    );
+
+    var model = Model;
+    var db = new DataContext();
+    var c_us = db.Users.Where(a => a.UserName == HttpContext.Current.User.Identity.Name).FirstOrDefault();
+    if (User.IsInRole("Managers") && c_us != null)
+    {
+        model = Model.Where(a => a.Id == c_us.AirportId).ToList();
+    }
+    var changeLogs = (List<ChangeLog>)ViewBag.ChangeLogs;
+}
+<div class="box">
+    @Html.Partial("_ChangeLog", changeLogs)
+    @if (User.IsInRole("Aministrators") || User.IsInRole("Super Admin"))
+    {
+        <div class="box-header">
+            <a class="btn btn-primary pull-right" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+        </div>
+    }
+    <div class="box-body">
+        <table class="table table-bordered">
+            <tr>
+                <th>
+                    Tên sân bay
+                </th>
+                <th>
+                    Mã sân bay
+                </th>
+                <th>
+                    Địa chỉ
+                </th>
+                <th>Thao tác</th>
+            </tr>
+
+            @foreach (var item in model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Name)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Code)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Address)
+                    </td>
+                    <td>
+                        @if (User.IsInRole("Aministrators") || User.IsInRole("Super Admin"))
+                        {
+                            <a href="@Url.Action("Edit", new { id = item.Id})">
+                                Sửa |
+                            </a>
+                            <a onclick="jdelete(@item.Id)" class="pointer">
+                                Xóa
+                            </a>
+                        }
+                    </td>
+                </tr>
+            }
+        </table>
+    </div>
+</div>
+<script>
+    function jdelete(id) {
+            if (confirm("Bạn chắc chắn muốn xóa sân bay này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDelete")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            window.location.reload();
+                        }
+                    },
+                });
+            }
+            return false;
+        }
+</script>

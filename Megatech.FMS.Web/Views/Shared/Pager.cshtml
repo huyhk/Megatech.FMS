@@ -1,0 +1,13 @@
+﻿@model PagingViewModel
+
+@if (Model !=null && Model.PageCount > 1)
+{
+    <ul class="pagination">
+        <li class="paginate_button"><a href="@Model.Url"><<</a></li>
+        @for (int i = Model.PageStart; i <= Model.PageEnd; i++)
+        {
+            <li class="paginate_button @(i==Model.PageIndex?"active":"")"><a href="@Model.Url?p=@i">@i</a></li>
+        }
+        <li class="paginate_button"><a href="@Model.Url?p=@Model.PageCount">>></a></li>
+    </ul>
+}

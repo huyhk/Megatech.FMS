@@ -1,0 +1,2221 @@
+﻿@model IEnumerable<FMS.Data.Flight>
+@using EntityFramework.DynamicFilters;
+@{
+    var db = new DataContext();
+    var f_id = Model.Select(f => f.Id).ToArray();
+    var lst_changelot = db.ChangeLogs.Where(c => c.EntityName.ToLower() == "flight" && f_id.Contains((int)c.EntityId)).ToList();
+    ViewBag.Title = "Kế hoạch tra nạp";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+        new BreadcrumbItem { Text = "Kế hoạch tra nạp" }
+    );
+    var temp_trucks = (List<Truck>)ViewBag.Trucks;
+    var truck_0 = temp_trucks;
+    var select_val_t = "";
+    if (Request["t"] != null)
+    {
+        select_val_t = Request["t"];
+    }
+    var selectList_t = new SelectList(temp_trucks, "Id", "Code", select_val_t);
+    var truckAssigns = (List<TruckAssign>)ViewBag.TruckAssigns;
+
+    var select_val_d = "";
+    if (Request["d"] != null)
+    {
+        select_val_d = Request["d"];
+    }
+    var driver = (List<User>)ViewBag.Driver;
+    var selectList_d = new SelectList(driver, "Id", "FullName", select_val_d);
+
+    var select_val_o = "";
+    if (Request["o"] != null)
+    {
+        select_val_o = Request["o"];
+    }
+    var oper = (List<User>)ViewBag.Operator;
+    var selectList_o = new SelectList(oper, "Id", "FullName", select_val_o);
+
+    var select_val_airline = "";
+    if (Request["airline"] != null)
+    {
+        select_val_airline = Request["airline"];
+    }
+    var airlines = (List<Airline>)ViewBag.Airlines;
+    var selectList_Airline = new SelectList(airlines, "Id", "Name", select_val_airline);
+
+    var select_val_carry = "";
+    if (Request["carry"] != null)
+    {
+        select_val_carry = Request["carry"];
+    }
+
+    var isDes = true;
+    if (Request["sortdirection"] != null && Request["sortdirection"].Equals("ASCENDING", StringComparison.OrdinalIgnoreCase))
+    {
+        isDes = false;
+    }
+    var select_val = "";
+    if (Request["a"] != null)
+    {
+        select_val = Request["a"];
+    }
+    var changeLogs = (List<ChangeLog>)ViewBag.ChangeLogs;
+    var airports = (List<Airport>)ViewBag.Airports;
+    var selectList = new SelectList(airports, "Id", "Name", select_val);
+
+    var startD = "moment().hours(0).minutes(0)";
+    var endD = "moment().hours(23).minutes(59)";
+    if (Request["daterange"] != null)
+    {
+        var ranges = Request["daterange"].Split('-');
+        startD = "moment('" + ranges[0] + "','DD/MM/YYYY H:mm')";
+        endD = "moment('" + ranges[1] + "','DD/MM/YYYY H:mm')";
+    }
+    var index = 1;
+    var date = DateTime.MinValue;
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+    int setTime = 10;
+    if (ViewBag.Airport != null)
+    {
+        var airport = (Airport)ViewBag.Airport;
+        if (airport != null)
+        {
+            int temp = 0;
+            int.TryParse(airport.SetTime.ToString(), out temp);
+            if (temp > 0)
+            {
+                setTime = temp;
+            }
+        }
+    }
+    int p_count = 250;
+    if (User.IsInRole("Super Admin") || User.IsInRole("Quản lý tổng công ty") || User.IsInRole("Quản lý miền"))
+    {
+        p_count = 20;
+    }
+    db.DisableFilter("IsNotDeleted");
+    var db_Trucks = db.Trucks.Where(t => t.IsDeleted).ToList();
+    var db_Users = db.Users.Where(t => t.IsDeleted).ToList();
+    db.EnableFilter("IsNotDeleted");
+}
+<div class="box style-header">
+    @Html.Partial("_ChangeLog", changeLogs)
+    <div class="box-header">
+        @if (viewOnly || User.IsInRole("Tra nạp"))
+        {
+            if (User.IsInRole("Điều hành"))
+            {
+                <a class="btn btn-delete pull-right hidden" id="deleteS"> Xóa</a>
+                <a class="btn btn-primary pull-right" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+                <a class="btn btn-primary pull-right" href="@Url.Action("Import")">Nhập file dữ liệu</a>
+            }
+            else
+            {
+                <span></span>
+            }
+        }
+        else
+        {
+            <a class="btn btn-delete pull-right hidden" id="deleteS"> Xóa</a>
+            <a class="btn btn-primary pull-right" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+            <a class="btn btn-primary pull-right" href="@Url.Action("Import")">Nhập file dữ liệu</a>
+        }
+        <div class="div-filter row">
+            <div class="col-md-12 pull-left">
+                <form method="get">
+                    @if (User.IsInRole("Administrators") || User.IsInRole("Super Admin") || User.IsInRole("Quản lý miền") || viewOnly)
+                    {
+                        <div class="form-group pull-left">
+                            <label>Thời gian:</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-default pull-right" id="daterange">
+                                    <i class="fa fa-calendar"></i> <span>
+                                    </span>
+                                    <i class="fa fa-caret-down"></i>
+                                </button>
+                                <input type="hidden" name="daterange" />
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Xe tra nạp:</label>
+                            <div class="input-group">
+                                @Html.DropDownList("t", selectList_t, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Lái xe:</label>
+                            <div class="input-group">
+                                @Html.DropDownList("d", selectList_d, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>NV tra nạp:</label>
+                            <div class="input-group">
+                                @Html.DropDownList("o", selectList_o, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Hãng bay:</label>
+                            <div class="input-group">
+                                @Html.DropDownList("airline", selectList_Airline, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>CC:</label>
+                            <div class="input-group">
+                                <select class="form-control select2" id="Carry" name="Carry">
+                                    <option value="-1">Tất cả</option>
+                                    <option value="0" @(select_val_carry == "0" ? "selected" : "")>PAX</option>
+                                    <option value="1" @(select_val_carry == "1" ? "selected" : "")>CCO</option>
+                                    <option value="2" @(select_val_carry == "2" ? "selected" : "")>CGO</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Sân bay:</label>
+                            <div class="input-group">
+                                @Html.DropDownList("a", selectList, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Từ khóa:</label>
+                            <div class="input-group">
+                                <input name="keyword" type="text" class="form-control text-box" value="@Request["keyword"]" placeholder="Nhập từ khóa" />
+                                <div class="input-group-btn">
+                                    <button type="submit" class="btn btn-info"><i class="fa fa-filter"></i> Lọc/Tìm kiếm</button>
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="form-group pull-left">
+                            <label>Chọn thời gian:</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-default pull-right" id="daterange">
+                                    <i class="fa fa-calendar"></i> <span>
+                                    </span>
+                                    <i class="fa fa-caret-down"></i>
+                                </button>
+                                <input type="hidden" name="daterange" />
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Xe tra nạp:</label>
+                            <div class="input-group">
+                                @Html.DropDownList("t", selectList_t, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Chọn lái xe:</label>
+                            <div class="input-group">
+                                @Html.DropDownList("d", selectList_d, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Chọn NV tra nạp:</label>
+                            <div class="input-group">
+                                @Html.DropDownList("o", selectList_o, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Chọn hãng bay:</label>
+                            <div class="input-group">
+                                @Html.DropDownList("airline", selectList_Airline, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Chọn chuyên chở:</label>
+                            <div class="input-group">
+                                <select class="form-control select2" id="Carry" name="Carry">
+                                    <option value="-1">Tất cả</option>
+                                    <option value="0" @(select_val_carry == "PAX" ? "selected" : "")>PAX</option>
+                                    <option value="1" @(select_val_carry == "CCO" ? "selected" : "")>CCO</option>
+                                    <option value="2" @(select_val_carry == "CGO" ? "selected" : "")>CGO</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group pull-left">
+                            <label>Từ khóa:</label>
+                            <div class="input-group">
+                                <input name="keyword" type="text" class="form-control text-box" value="@Request["keyword"]" placeholder="Nhập từ khóa" />
+                                <div class="input-group-btn">
+                                    <button type="submit" class="btn btn-info"><i class="fa fa-filter"></i> Lọc/Tìm kiếm</button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </form>
+
+            </div>
+            @if (Model.Count() > 0)
+            {
+                <div class="pull-right" style="width: 100%;">
+                    <a class="pull-right" href="@Url.Action("FlightExport", "Flights", new { daterange = Request["daterange"], d = Request["d"], o = Request["o"], airline = Request["airline"], Carry = Request["Carry"], a = Request["a"], keyword = Request["keyword"]})">
+                        <i class="fa fa-file-excel"></i>
+                        <span>Xuất ra Excel</span>
+                    </a>
+                </div>
+            }
+
+            <div class="pull-right col-md-12 sh-copy hidden">
+                <div class="form-group">
+                    @if (!viewOnly)
+                    {
+                        <label>Ngày copy đến</label>
+                        <div class="input-group">
+                            <input type="text" id="rf_date" class="form-control" value="@(Request["rfd"] != null? Request["rfd"].ToString(): DateTime.Now.ToString("dd/MM/yyyy"))" />
+                            <div class="input-group-btn">
+                                <button id="copy" class="btn btn-info"><i class="fa fa-copy"></i> Copy</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="box-body">
+        <div class="table-responsive padding-bottom">
+            <table class="table table-bordered text-nowrap" id="table">
+                <thead>
+                    <tr class="text-center">
+                        @if (User.IsInRole("Tra nạp"))
+                        {
+                            if (User.IsInRole("Điều hành"))
+                            {
+                                <th class="text-center check">
+                                    @Html.CheckBox("chkSelectAll", false, new { id = "check_All", @class = "check-all" })
+                                </th>
+                            }
+                        }
+                        else
+                        {
+                            <th class="text-center check">
+                                @Html.CheckBox("chkSelectAll", false, new { id = "check_All", @class = "check-all" })
+                            </th>
+                        }
+                        <th class="text-center">Thứ tự</th>
+                        <th class="text-center">
+                            Loại tàu bay<br />
+                            Số hiệu<br />
+                        </th>
+                        <th class="text-center">
+                            Số chuyến<br />
+                        </th>
+                        <th class="text-center">
+                            Đường bay <br />
+                            Chuyên chở
+                        </th>
+                        <th class="text-center">Giờ hạ cánh <br />Giờ cất cánh</th>
+                        <th class="date filter text-center">
+                            Giờ nạp <br /> Bãi đỗ
+                        </th>
+                        <th>Sản lượng <br /> dự kiến</th>
+                        <th class="text-center">Phân công</th>
+                        <th class="text-center">Xe</th>
+                        <th class="text-center">Lái xe</th>
+                        <th class="text-center"> NV tra nạp</th>
+                        <th>#</th>
+                        <th class="text-center" style="width: 110px;">
+                            Thao tác
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var order = index++;
+                        var trucks = new List<Truck>();
+
+                        //DateTime c_day = (DateTime)item.RefuelScheduledTime;
+                        //Phân công xe
+                        //var temp_ta = truckAssigns.Where(t => t.Shift != null &&
+                        //    (t.Shift.EndTime.Hour <= t.Shift.StartTime.Hour
+                        //    ? (new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, item.RefuelScheduledTime.Value.Hour, item.RefuelScheduledTime.Value.Minute, 0) <= new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.EndTime.Hour, t.Shift.EndTime.Minute, 0) || new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, item.RefuelScheduledTime.Value.Hour, item.RefuelScheduledTime.Value.Minute, 0) >= new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.StartTime.Hour, t.Shift.StartTime.Minute, 0))
+                        //    : (new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.StartTime.Hour, t.Shift.StartTime.Minute, 0) <= new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, item.RefuelScheduledTime.Value.Hour, item.RefuelScheduledTime.Value.Minute, 0) && new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, item.RefuelScheduledTime.Value.Hour, item.RefuelScheduledTime.Value.Minute, 0) <= new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.EndTime.Hour, t.Shift.EndTime.Minute, 0))
+                        //    )
+                        //    && ((t.Shift.EndTime.Hour <= t.Shift.StartTime.Hour && c_day.Day > DateTime.Now.Day) ? t.StartDate.AddDays(1).Day == c_day.Day : t.StartDate.Day == c_day.Day)
+                        //    && t.StartDate.Month == c_day.Month
+                        //    && t.StartDate.Year == c_day.Year
+                        //    ).ToList();
+                        var temp_ta = truckAssigns.Where(t => t.Shift != null
+                        && (t.Shift.StartTime <= t.Shift.EndTime ?
+                        (new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.StartTime.Hour, t.Shift.StartTime.Minute, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, item.RefuelScheduledTime.Value.Hour, item.RefuelScheduledTime.Value.Minute, 0)
+                        && new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, item.RefuelScheduledTime.Value.Hour, item.RefuelScheduledTime.Value.Minute, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.EndTime.Hour, t.Shift.EndTime.Minute, 0)
+                        && t.StartDate.Day == item.RefuelScheduledTime.Value.Day && t.StartDate.Month == item.RefuelScheduledTime.Value.Month && t.StartDate.Year == item.RefuelScheduledTime.Value.Year)
+
+                        : ((new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.StartTime.Hour, t.Shift.StartTime.Minute, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, item.RefuelScheduledTime.Value.Hour, item.RefuelScheduledTime.Value.Minute, 0)
+                        && new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, item.RefuelScheduledTime.Value.Hour, item.RefuelScheduledTime.Value.Minute, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 23, 59, 0) && t.StartDate.Day == item.RefuelScheduledTime.Value.Day && t.StartDate.Month == item.RefuelScheduledTime.Value.Month && t.StartDate.Year == item.RefuelScheduledTime.Value.Year) ||
+
+                        (new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, item.RefuelScheduledTime.Value.Hour, item.RefuelScheduledTime.Value.Minute, 0)
+                        && new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, item.RefuelScheduledTime.Value.Hour, item.RefuelScheduledTime.Value.Minute, 0) <=
+                        new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, t.Shift.EndTime.Hour, t.Shift.EndTime.Minute, 0) && t.StartDate.AddDays(1).Day == item.RefuelScheduledTime.Value.Day
+                        && t.StartDate.Month == item.RefuelScheduledTime.Value.Month && t.StartDate.Year == item.RefuelScheduledTime.Value.Year)
+
+                        ))).ToList();
+
+                        var db_TruckAssigns = temp_ta;
+                        if (item.Status == FlightStatus.REFUELED)
+                        {
+                            trucks = temp_trucks.Where(t => item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(t.Id)).ToList();
+                        }
+                        else
+                        {
+                            var truck_ids = temp_ta.Select(t => t.TruckId).ToList();
+                            if (truck_ids.Count == 0)
+                            {
+                                truck_ids = temp_trucks.Select(t => t.Id).ToList();
+                            }
+                            //trường hợp phân công trước khi bảng phân công có dữ liệu thì add thêm id đã phân công vào cùng id sau khi bảng phân công đã có dữ liệu
+                            if (temp_trucks.Where(t => item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(t.Id)).Count() > 0)
+                            {
+                                truck_ids.AddRange(item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId));
+                            }
+                            trucks = temp_trucks.Where(t => truck_ids.Contains(t.Id)).ToList();
+
+                            if (trucks.Count == 0)
+                            {
+                                trucks = temp_trucks.Where(t => item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(t.Id)).ToList();
+                            }
+                        }
+
+                        if (item.RefuelScheduledTime.Value.Date != date)
+                        {
+                            date = item.RefuelScheduledTime.Value.Date;
+                            <tr class="info">
+                                <th colspan="14" scope="row">@date.ToString("dd/MM/yyyy")</th>
+                            </tr>
+                        }
+
+                        // nếu không có xe phân công nào thỏa đk bảng "phân công xe" thì lấy tất cả xe
+                        if (trucks.Count == 0)
+                        {
+                            trucks = (List<Truck>)ViewBag.Trucks;
+                        }
+
+                        var count = trucks.Count();
+                        var spn = 1;
+
+                        if (count == 0)
+                        {
+                            <tr class="item-flight-@item.Id text-center item item-color parent @(item.Status == FlightStatus.ASSIGNED ? "warning" : item.Status == FlightStatus.REFUELED ? "success" : item.Status== FlightStatus.CANCELED? "canceled":  "") @(item.Follow == 1 ? "follow" : "")">
+                                @if (User.IsInRole("Tra nạp"))
+                                {
+                                    if (User.IsInRole("Điều hành"))
+                                    {
+                                        <td class="check">
+                                            @Html.CheckBox("chkSelect", false, new { value = item.Id, @class = "is-check c-copy" })
+                                        </td>
+                                    }
+                                }
+                                else
+                                {
+                                    <td class="check">
+                                        @Html.CheckBox("chkSelect", false, new { value = item.Id, @class = "is-check c-copy" })
+                                    </td>
+                                }
+
+                                <td class="order">
+                                    @order
+                                </td>
+                                <td>
+                                    <span id="AircraftType" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.AircraftType && c.EntityId == item.Id) != null ? "changed" : "")">@item.AircraftType</span><br />
+                                    <span id="AircraftCode" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.AircraftCode && c.EntityId == item.Id) != null ? "changed" : "")">@item.AircraftCode</span><br />
+
+                                </td>
+                                <td class="next-sh-button sh-refuel-item-@item.Id" onclick="refuelInfo(@item.Id)">
+                                    <span id="Code" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.Code && c.EntityId == item.Id) != null ? "changed" : "")"> @item.Code </span><br />
+
+                                </td>
+                                <td class="next-sh-button sh-refuel-item-@item.Id" onclick="refuelInfo(@item.Id)">
+
+                                    <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.RouteName && c.EntityId == item.Id) != null ? "changed" : "")" id="RouteName"> @item.RouteName </span><br />
+                                    <span id="FlightCarry" class="@(lst_changelot.FirstOrDefault(c => c.EntityId == item.Id && c.NewValues == (item.FlightCarry == FlightCarry.CCO ? "CCO" : item.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")) != null ? "changed" : "")">
+                                        @(item.FlightCarry == FlightCarry.CCO ? "CCO" : item.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")
+                                    </span>
+
+                                </td>
+                                <td class="next-sh-button sh-refuel-item-@item.Id" onclick="refuelInfo(@item.Id)">
+                                    <span id="ArrivalScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.ArrivalScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                        @((item.ArrivalScheduledTime != null && item.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year) ? Convert.ToDateTime(item.ArrivalScheduledTime).ToString("HH:mm") : "---")
+                                    </span>
+                                    <br />
+                                    <span id="DepartureScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.DepartureScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                        @Convert.ToDateTime(item.DepartureScheduledTime).ToString("HH:mm")
+                                    </span>
+                                </td>
+                                <td class="@(item.Status == FlightStatus.REFUELING ? "set-color-refueling":"set-color")" data-val="@item.RefuelScheduledTime">
+                                    <span id="RefuelScheduledHours" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.RefuelScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                        @Convert.ToDateTime(item.RefuelScheduledTime).ToString("HH:mm")
+                                    </span>
+                                    <br />
+                                    <span id="Parking" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.Parking && c.EntityId == item.Id) != null ? "changed" : "")">
+                                        @Html.DisplayFor(modelItem => item.Parking)
+                                    </span>
+                                </td>
+                                <td class="rspn" rowspan="@spn">
+                                    <span id="EstimateAmount">
+                                        @Math.Round(item.EstimateAmount).ToString("#,##0")
+                                    </span>
+                                </td>
+                                <td></td>
+                                <td>
+                                    @Html.DropDownList("TruckId" + item.Id, new SelectList(truck_0, "Id", "Code"), htmlAttributes: new { @class = "select2 form-control truckId d-truckId-" + item.Id, @disabled = "" })
+                                </td>
+                                <td>
+                                    @Html.DropDownList("DriverId" + item.Id, new SelectList(driver, "Id", "FullName"), htmlAttributes: new { @class = "select2 form-control driverId d-driverId-" + item.Id, @disabled = "" })
+                                </td>
+                                <td>
+                                    @Html.DropDownList("OperatorId" + item.Id, new SelectList(oper, "Id", "FullName"), htmlAttributes: new { @class = "select2 form-control operatorId d-operatorId-" + item.Id + "", @disabled = "" })
+                                </td>
+                                <td>
+                                    
+                                </td>
+                                <td>
+                                    @if (!viewOnly)
+                                    {
+                                        <div class="action">
+                                            <span class="btn-header fa fa-edit"></span>
+                                            <div class="btn-content">
+                                                @if (item.Status != FlightStatus.CANCELED)
+                                                {
+                                                    <div class="hide-cancel-@item.Id">
+                                                        <a onclick="fback(@item.Id, @spn)" class="pointer btn-fback hidden">
+                                                            Quay về
+                                                        </a>
+                                                        <a onclick="refuel(@item.Id, @spn, 0,@order)" class="pointer btn-save hidden btn-save-@item.Id">
+                                                            Lưu
+                                                        </a>
+                                                        <a class="hidden img-wait-@item.Id"><img src="~/admin-lte2.4/img/wait.svg" height="30" /></a>
+                                                        @if (User.IsInRole("Điều hành"))
+                                                        {
+                                                            if (User.IsInRole("Tra nạp"))
+                                                            {
+                                                                <a onclick="showtruck(@item.Id, 1)" class="pointer btn-assign">Phân công</a>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <a onclick="showtruck(@item.Id, 1)" class="pointer btn-assign">Phân công</a>
+                                                        }
+                                                        @if (User.IsInRole("Tra nạp"))
+                                                        {
+                                                            if (User.IsInRole("Điều hành"))
+                                                            {
+
+                                                                <a class="pointer btn-edit" onclick="getbyId(@item.Id)">
+                                                                    Sửa
+                                                                </a>
+                                                                <a class="pointer btn-cancel" onclick="cancel(@item.Id)">
+                                                                    Hủy chuyến
+                                                                </a>
+                                                                <a class="pointer btn-follow" onclick="follow(@item.Id)">
+                                                                    @(item.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                                                </a>
+                                                                <a onclick="fdelete(@item.Id)" class="pointer btn-delete">
+                                                                    Xóa
+                                                                </a>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <a class="pointer btn-edit" onclick="getbyId(@item.Id)">
+                                                                Sửa
+                                                            </a>
+                                                            <a class="pointer btn-cancel" onclick="cancel(@item.Id)">
+                                                                Hủy chuyến
+                                                            </a>
+                                                            <a class="pointer btn-follow" onclick="follow(@item.Id)">
+                                                                @(item.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                                            </a>
+                                                            <a onclick="fdelete(@item.Id)" class="pointer btn-delete">
+                                                                Xóa
+                                                            </a>
+                                                        }
+                                                    </div>
+                                                }
+                                                <a class="btn-detail" onclick="refuelInfo(@item.Id)">
+                                                    Chi tiết
+                                                </a>
+                                            </div>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        else if (item.Status == FlightStatus.REFUELED)
+                        {
+                            var i = 0;
+                            if (item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Count() > 1)
+                            {
+                                spn = item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Count();
+                            }
+                            foreach (var ri in item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL))
+                            {
+                                <tr class="item-flight-@item.Id text-center item parent success @(item.Follow == 1 ?"follow":"")">
+                                    @if (i == 0)
+                                    {
+                                        if (User.IsInRole("Tra nạp"))
+                                        {
+                                            if (User.IsInRole("Điều hành"))
+                                            {
+                                                <td class="rspn check" rowspan="@spn">
+                                                    @Html.CheckBox("chkSelect", false, new { value = item.Id, @class = "is-check c-copy" })
+                                                </td>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <td class="rspn check" rowspan="@spn">
+                                                @Html.CheckBox("chkSelect", false, new { value = item.Id, @class = "is-check c-copy" })
+                                            </td>
+                                        }
+
+                                        <td class="order rspn" rowspan="@spn">
+                                            @order
+                                        </td>
+                                        <td class="rspn" rowspan="@spn">
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.AircraftType && c.EntityId == item.Id) != null ? "changed" : "")" id="AircraftType">@item.AircraftType</span><br />
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.AircraftCode && c.EntityId == item.Id) != null ? "changed" : "")" id="AircraftCode">@item.AircraftCode</span><br />
+
+                                        </td>
+                                        <td class="rspn next-sh-button sh-refuel-item-@item.Id" rowspan="@spn" onclick="refuelInfo(@item.Id)">
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.Code && c.EntityId == item.Id) != null ? "changed" : "")" id="Code"> @item.Code </span><br />
+
+                                        </td>
+                                        <td class="rspn next-sh-button sh-refuel-item-@item.Id" rowspan="@spn" onclick="refuelInfo(@item.Id)">
+
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.RouteName && c.EntityId == item.Id) != null ? "changed" : "")" id="RouteName"> @item.RouteName </span><br />
+                                            <span id="FlightCarry" class="@(lst_changelot.FirstOrDefault(c => c.EntityId == item.Id && c.NewValues == (item.FlightCarry == FlightCarry.CCO ? "CCO" : item.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")) != null ? "changed" : "")">
+                                                @(item.FlightCarry == FlightCarry.CCO ? "CCO" : item.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")
+                                            </span>
+                                        </td>
+                                        <td class="rspn next-sh-button sh-refuel-item-@item.Id" rowspan="@spn" onclick="refuelInfo(@item.Id)">
+                                            <span id="ArrivalScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.ArrivalScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @(item.ArrivalScheduledTime != null && item.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year ? Convert.ToDateTime(item.ArrivalScheduledTime).ToString("HH:mm") : "---")
+                                            </span>
+                                            <br />
+                                            <span id="DepartureScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.DepartureScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @Convert.ToDateTime(item.DepartureScheduledTime).ToString("HH:mm")
+                                            </span>
+                                        </td>
+                                        <td class="rspn @(item.Status == FlightStatus.REFUELING ? "set-color-refueling":"set-color")" rowspan="@spn" data-val="@item.RefuelScheduledTime">
+                                            <span id="RefuelScheduledHours" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.RefuelScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @Convert.ToDateTime(item.RefuelScheduledTime).ToString("HH:mm")
+                                            </span>
+                                            <br />
+                                            <span id="Parking" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.Parking && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @Html.DisplayFor(modelItem => item.Parking)
+                                            </span>
+
+                                        </td>
+                                        <td id="EstimateAmount" class="rspn" rowspan="@spn">
+                                            @Math.Round(item.EstimateAmount).ToString("#,##0")
+                                        </td>
+                                    }
+                                    <td>
+                                        <input name="trucks" type="checkbox" value="@ri.Id" class="trucks checkbox2" checked="checked" disabled="disabled" />
+                                    </td>
+                                    <td>
+                                        @if (ri.Truck != null)
+                                        {
+                                            @ri.Truck.Code
+                                        }
+                                        else
+                                        {
+                                            var truck_d = db_Trucks.FirstOrDefault(t => t.Id == ri.TruckId);
+                                            if (truck_d != null)
+                                            {
+                                                <span>@truck_d.Code</span>
+                                            }
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (ri.Driver != null)
+                                        {
+                                            @ri.Driver.FullName
+                                        }
+                                        else
+                                        {
+                                            var user_d = db_Users.FirstOrDefault(u => u.Id == ri.DriverId);
+                                            if (user_d != null)
+                                            {
+                                                <span>@user_d.FullName</span>
+                                            }
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (ri.Operator != null)
+                                        {
+                                            @ri.Operator.FullName
+                                        }
+                                        else
+                                        {
+                                            var user_d = db_Users.FirstOrDefault(u => u.Id == ri.OperatorId);
+                                            if (user_d != null)
+                                            {
+                                                <span>@user_d.FullName</span>
+                                            }
+                                        }
+                                    </td>
+                                    <td></td>
+                                    @if (i == 0)
+                                    {
+                                        if (viewOnly)
+                                        {
+                                            <td class="rspn next-sh-button" rowspan="@spn">
+                                                <div class="action">
+                                                    <span class="btn-header fa fa-edit"></span>
+                                                    <div class="btn-content">
+                                                        <a class="btn-detail" onclick="refuelInfo(@item.Id)">Chi tiết</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        }
+                                        else
+                                        {
+                                            <td class="rspn" rowspan="@spn">
+                                                <div class="action">
+                                                    <span class="btn-header fa fa-edit"></span>
+                                                    <div class="btn-content">
+                                                        <div class="hide-cancel-@item.Id">
+                                                            <a class="pointer btn-edit" onclick="getbyId(@item.Id)">
+                                                                Sửa
+                                                            </a>
+
+                                                            @if (User.IsInRole("Administrators") || User.IsInRole("Super Admin") || User.IsInRole("Quản lý miền"))
+                                                            {
+                                                                <a onclick="fdelete(@item.Id)" class="pointer btn-delete">
+                                                                    Xóa
+                                                                </a>
+                                                            }
+                                                        </div>
+                                                        <a class="btn-detail" onclick="refuelInfo(@item.Id)">Chi tiết</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        }
+                                    }
+                                </tr>
+                                i++;
+                            }
+                        }
+                        else
+                        {
+                            if (db_TruckAssigns.Count > 0)
+                            {
+                                spn = 1;
+                                var i = 0;
+                                if (db_TruckAssigns.Count(t => item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(t.TruckId)) > 0)
+                                {
+                                    spn = db_TruckAssigns.Count(t => item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(t.TruckId));
+                                }
+
+                                foreach (var ri in db_TruckAssigns.OrderByDescending(t => item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(t.TruckId)).ToList())
+                                {
+                                    var assinged = item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).FirstOrDefault(r => r.TruckId == ri.TruckId);
+                                <tr class="item-flight-@item.Id text-center item parent @((!item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.TruckId) && i > 0)?"hidden fhide":"item-color") @(item.Status == FlightStatus.REFUELED ? "success": item.Status == FlightStatus.CANCELED ? "canceled": item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.TruckId) ? "warning" : "") @(item.Follow == 1 ?"follow":"")">
+                                    @if (i == 0)
+                                    {
+                                        if (User.IsInRole("Tra nạp"))
+                                        {
+                                            if (User.IsInRole("Điều hành"))
+                                            {
+                                                <td class="rspn check" rowspan="@spn">
+                                                    @Html.CheckBox("chkSelect", false, new { value = item.Id, @class = "is-check c-copy" })
+                                                </td>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <td class="rspn check" rowspan="@spn">
+                                                @Html.CheckBox("chkSelect", false, new { value = item.Id, @class = "is-check c-copy" })
+                                            </td>
+                                        }
+
+                                        <td class="order rspn" rowspan="@spn">
+                                            @order
+                                        </td>
+
+                                        <td class="rspn" rowspan="@spn">
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.AircraftType && c.EntityId == item.Id) != null ? "changed" : "")" id="AircraftType">@item.AircraftType</span><br />
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.AircraftCode && c.EntityId == item.Id) != null ? "changed" : "")" id="AircraftCode">@item.AircraftCode</span><br />
+
+                                        </td>
+                                        <td class="rspn next-sh-button sh-refuel-item-@item.Id" rowspan="@spn" onclick="refuelInfo(@item.Id)">
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.Code && c.EntityId == item.Id) != null ? "changed" : "")" id="Code"> @item.Code </span><br />
+
+                                        </td>
+                                        <td class="rspn next-sh-button sh-refuel-item-@item.Id" rowspan="@spn" onclick="refuelInfo(@item.Id)">
+
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.RouteName && c.EntityId == item.Id) != null ? "changed" : "")" id="RouteName"> @item.RouteName </span><br />
+                                            <span id="FlightCarry" class="@(lst_changelot.FirstOrDefault(c => c.EntityId == item.Id && c.NewValues == (item.FlightCarry == FlightCarry.CCO ? "CCO" : item.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")) != null ? "changed" : "")">
+                                                @(item.FlightCarry == FlightCarry.CCO ? "CCO" : item.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")
+                                            </span>
+                                        </td>
+                                        <td class="rspn next-sh-button sh-refuel-item-@item.Id" rowspan="@spn" onclick="refuelInfo(@item.Id)">
+                                            <span id="ArrivalScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.ArrivalScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @(item.ArrivalScheduledTime != null && item.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year ? Convert.ToDateTime(item.ArrivalScheduledTime).ToString("HH:mm") : "---")
+                                            </span>
+                                            <br />
+                                            <span id="DepartureScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.DepartureScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @Convert.ToDateTime(item.DepartureScheduledTime).ToString("HH:mm")
+                                            </span>
+                                        </td>
+                                        <td class="rspn @(item.Status == FlightStatus.REFUELING ? "set-color-refueling":"set-color")" rowspan="@spn" data-val="@item.RefuelScheduledTime">
+                                            <span id="RefuelScheduledHours" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.RefuelScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @Convert.ToDateTime(item.RefuelScheduledTime).ToString("HH:mm")
+                                            </span>
+                                            <br />
+                                            <span id="Parking" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.Parking && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @Html.DisplayFor(modelItem => item.Parking)
+                                            </span>
+                                        </td>
+                                        <td class="rspn" rowspan="@spn">
+                                            <span id="EstimateAmount">
+                                                @Math.Round(item.EstimateAmount).ToString("#,##0")
+                                            </span>
+                                        </td>
+                                    }
+                                    <td>
+                                        @if (item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.TruckId))
+                                        {
+                                            <span class="fa fa-check-square" style="color:#ddd"></span>
+                                        }
+                                        else
+                                        {
+                                            if (item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Count() > 0)
+                                            {
+                                                <input disabled name="trucks" type="checkbox" value="@ri.TruckId" class="trucks checkbox2 i-truck-@item.Id" @(item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.TruckId) ? "checked" : "") />
+                                            }
+                                            else
+                                            {
+                                                <input disabled name="trucks" type="checkbox" value="@ri.TruckId" class="trucks checkbox2" />
+                                            }
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (ri.Truck != null)
+                                        {
+                                            <span>@ri.Truck.Code</span>
+                                        }
+                                        else
+                                        {
+                                            <span>---</span>
+                                        }
+                                    </td>
+                                    <td class="truck-@ri.TruckId">
+                                        @{
+                                            var selected_Id = -1;
+                                            if (assinged != null)
+                                            {
+                                                if (assinged.DriverId != null)
+                                                {
+                                                    selected_Id = (int)assinged.DriverId;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                selected_Id = ri.DriverId;
+                                            }
+                                        }
+                                        @if (item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.TruckId) && driver.Where(u => u.Id == selected_Id).FirstOrDefault() != null)
+                                        {
+                                            <span>
+                                                @driver.Where(u => u.Id == selected_Id).FirstOrDefault().FullName
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            if (selected_Id > 0)
+                                            {
+                                                @Html.DropDownList("DriverId" + item.Id + "_" + ri.Id, new SelectList(driver, "Id", "FullName", selected_Id), htmlAttributes: new { @onchange = "changeUserGroup1(" + item.Id + "," + ri.TruckId + ",this.value)", @class = "select2 form-control driverId d-driverId-" + item.Id, @disabled = "" })
+                                            }
+                                            else
+                                            {
+                                                @Html.DropDownList("DriverId" + item.Id + "_" + ri.Id, new SelectList(driver, "Id", "FullName"), htmlAttributes: new { @onchange = "changeUserGroup1(" + item.Id + "," + ri.TruckId + ",this.value)", @class = "select2 form-control driverId d-driverId-" + item.Id, @disabled = "" })
+                                            }
+                                        }
+                                    </td>
+                                    <td class="truck-@ri.TruckId">
+                                        @{
+                                            selected_Id = -1;
+                                            if (assinged != null)
+                                            {
+                                                if (assinged.OperatorId != null)
+                                                {
+                                                    selected_Id = (int)assinged.OperatorId;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                selected_Id = ri.TechnicalerId;
+                                            }
+                                        }
+                                        @if (item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.TruckId) && oper.Where(u => u.Id == selected_Id).FirstOrDefault() != null)
+                                        {
+                                            <span>
+                                                @oper.Where(u => u.Id == selected_Id).FirstOrDefault().FullName
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            if (selected_Id > 0)
+                                            {
+                                                @Html.DropDownList("OperatorId" + item.Id + "_" + ri.Id, new SelectList(oper, "Id", "FullName", selected_Id), htmlAttributes: new { @onchange = "changeUserGroup2(" + item.Id + "," + ri.TruckId + ",this.value)", @class = "select2 form-control operatorId d-operatorId-" + item.Id, @disabled = "" })
+                                            }
+                                            else
+                                            {
+                                                @Html.DropDownList("OperatorId" + item.Id + "_" + ri.Id, new SelectList(oper, "Id", "FullName"), htmlAttributes: new { @onchange = "changeUserGroup2(" + item.Id + "," + ri.TruckId + ",this.value)", @class = "select2 form-control operatorId d-operatorId-" + item.Id + "", @disabled = "" })
+                                            }
+                                        }
+                                    </td>
+                                    
+                                    <td>
+                                        <input disabled name="all_trucks" type="checkbox" value="" title="Áp dụng cho tất cả các chuyến bay có xe tra nạp này." class="all-trucks checkbox2" />  
+                                    </td>
+                                    @if (i == 0)
+                                    {
+                                        if (viewOnly)
+                                        {
+                                            <td class="rspn next-sh-button" rowspan="@spn">
+                                                <div class="action">
+                                                    <span class="btn-header fa fa-edit"></span>
+                                                    <div class="btn-content">
+                                                        <a onclick="refuelInfo(@item.Id)" class="btn-detail">
+                                                            Chi tiết
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        }
+                                        else
+                                        {
+                                            <td class="rspn" rowspan="@spn">
+                                                <div class="action">
+                                                    <span class="btn-header fa fa-edit"></span>
+                                                    <div class="btn-content">
+                                                        @if (item.Status != FlightStatus.CANCELED)
+                                                        {
+                                                            <div class="hide-cancel-@item.Id">
+                                                                <a onclick="fback(@item.Id, @spn)" class="pointer btn-fback hidden">
+                                                                    Quay về
+                                                                </a>
+                                                                <a onclick="refuel(@item.Id, @spn, 1,@order)" class="pointer btn-save hidden btn-save-@item.Id">
+                                                                    Lưu
+                                                                </a>
+                                                                <a class="hidden img-wait-@item.Id"><img src="~/admin-lte2.4/img/wait.svg" height="30" /></a>
+                                                                @if (User.IsInRole("Điều hành"))
+                                                                {
+                                                                    if (User.IsInRole("Tra nạp"))
+                                                                    {
+                                                                        <a onclick="showtruck(@item.Id, @db_TruckAssigns.Count)" class="pointer btn-assign">@(item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.TruckId) ? "Phân công lại" : "Phân công")</a>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <a onclick="showtruck(@item.Id, @db_TruckAssigns.Count)" class="pointer btn-assign">@(item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.TruckId) ? "Phân công lại" : "Phân công")</a>
+                                                                }
+                                                                @if (User.IsInRole("Tra nạp"))
+                                                                {
+                                                                    if (User.IsInRole("Điều hành"))
+                                                                    {
+
+                                                                        <a class="pointer btn-edit" onclick="getbyId(@item.Id)">
+                                                                            Sửa
+                                                                        </a>
+                                                                        <a class="pointer btn-cancel" onclick="cancel(@item.Id)">
+                                                                            Hủy chuyến
+                                                                        </a>
+                                                                        <a class="pointer btn-follow" onclick="follow(@item.Id)">
+                                                                            @(item.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                                                        </a>
+                                                                        <a onclick="fdelete(@item.Id)" class="pointer btn-delete">Xóa</a>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <a class="pointer btn-edit" onclick="getbyId(@item.Id)">
+                                                                        Sửa
+                                                                    </a>
+                                                                    <a class="pointer btn-cancel" onclick="cancel(@item.Id)">
+                                                                        Hủy chuyến
+                                                                    </a>
+                                                                    <a class="pointer btn-follow" onclick="follow(@item.Id)">
+                                                                        @(item.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                                                    </a>
+                                                                    <a onclick="fdelete(@item.Id)" class="pointer btn-delete">Xóa</a>
+                                                                }
+                                                            </div>
+                                                        }
+
+                                                        <a onclick="refuelInfo(@item.Id)" class="btn-detail">
+                                                            Chi tiết
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        }
+                                    }
+                                </tr>
+                                    i++;
+                                }
+                            }
+                            else
+                            {
+                                spn = 1;
+                                if (trucks.Count(t => item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(t.Id)) > 1)
+                                {
+                                    spn = trucks.Count(t => item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(t.Id));
+                                }
+                                var i = 0;
+                                foreach (var ri in trucks.OrderByDescending(t => item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(t.Id)).ToList())
+                                {
+                                    var assinged = item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).FirstOrDefault(r => r.TruckId == ri.Id);
+                                    var truck_assign = temp_ta.FirstOrDefault(t => t.TruckId == ri.Id);
+
+                                <tr class="item-flight-@item.Id text-center item parent @((!item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.Id) && i > 0)?"hidden fhide":"item-color") @(item.Status == FlightStatus.REFUELED ? "success": item.Status == FlightStatus.CANCELED ? "canceled" : item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.Id) ? "warning" : "") @(item.Follow == 1 ?"follow":"")">
+                                    @if (i == 0)
+                                    {
+                                        if (User.IsInRole("Tra nạp"))
+                                        {
+                                            if (User.IsInRole("Điều hành"))
+                                            {
+                                                <td class="rspn check" rowspan="@spn">
+                                                    @Html.CheckBox("chkSelect", false, new { value = item.Id, @class = "is-check c-copy" })
+                                                </td>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <td class="rspn check" rowspan="@spn">
+                                                @Html.CheckBox("chkSelect", false, new { value = item.Id, @class = "is-check c-copy" })
+                                            </td>
+                                        }
+
+                                        <td class="order rspn" rowspan="@spn">
+                                            @order
+                                        </td>
+
+                                        <td class="rspn" rowspan="@spn">
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.AircraftType && c.EntityId == item.Id) != null ? "changed" : "")" id="AircraftType">@item.AircraftType</span><br />
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.AircraftCode && c.EntityId == item.Id) != null ? "changed" : "")" id="AircraftCode">@item.AircraftCode</span><br />
+
+                                        </td>
+                                        <td class="rspn next-sh-button sh-refuel-item-@item.Id" rowspan="@spn" onclick="refuelInfo(@item.Id)">
+                                            <span class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.Code && c.EntityId == item.Id) != null ? "changed" : "")" id="Code"> @item.Code </span><br />
+
+                                        </td>
+                                        <td class="rspn next-sh-button sh-refuel-item-@item.Id" rowspan="@spn" onclick="refuelInfo(@item.Id)">
+
+                                            <span id="RouteName" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.RouteName && c.EntityId == item.Id) != null ? "changed" : "")"> @item.RouteName </span><br />
+                                            <span id="FlightCarry" class="@(lst_changelot.FirstOrDefault(c => c.EntityId == item.Id && c.NewValues == (item.FlightCarry == FlightCarry.CCO ? "CCO" : item.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")) != null ? "changed" : "")">
+                                                @(item.FlightCarry == FlightCarry.CCO ? "CCO" : item.FlightCarry == FlightCarry.CGO ? "CGO" : "PAX")
+                                            </span>
+                                        </td>
+                                        <td class="rspn next-sh-button sh-refuel-item-@item.Id" rowspan="@spn" onclick="refuelInfo(@item.Id)">
+                                            <span id="ArrivalScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.ArrivalScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @(item.ArrivalScheduledTime != null && item.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year ? Convert.ToDateTime(item.ArrivalScheduledTime).ToString("HH:mm") : "---")
+                                            </span>
+                                            <br />
+                                            <span id="DepartureScheduledTime" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.DepartureScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @Convert.ToDateTime(item.DepartureScheduledTime).ToString("HH:mm")
+                                            </span>
+                                        </td>
+                                        <td class="rspn @(item.Status == FlightStatus.REFUELING ? "set-color-refueling":"set-color")" rowspan="@spn" data-val="@item.RefuelScheduledTime">
+                                            <span id="RefuelScheduledHours" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == Convert.ToDateTime(item.RefuelScheduledTime).ToString("HH:mm") && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @Convert.ToDateTime(item.RefuelScheduledTime).ToString("HH:mm")
+                                            </span>
+                                            <br />
+                                            <span id="Parking" class="@(lst_changelot.FirstOrDefault(c => c.NewValues == item.Parking && c.EntityId == item.Id) != null ? "changed" : "")">
+                                                @Html.DisplayFor(modelItem => item.Parking)
+                                            </span>
+                                        </td>
+                                        <td class="rspn" rowspan="@spn">
+                                            <span id="EstimateAmount">
+                                                @Math.Round(item.EstimateAmount).ToString("#,##0")
+                                            </span>
+                                        </td>
+                                    }
+                                    <td>
+                                        @if (item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.Id))
+                                        {
+
+                                            <span class="fa fa-check-square" style="color:#ddd"></span>
+                                        }
+                                        else
+                                        {
+                                            if (item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Count() > 0)
+                                            {
+                                                <input disabled name="trucks" type="checkbox" value="@ri.Id" class="trucks checkbox2 i-truck-@item.Id" @(item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.Id) ? "checked" : "") />
+                                            }
+                                            else
+                                            {
+                                                <input name="trucks" type="checkbox" value="@ri.Id" class="trucks checkbox2" disabled />
+                                            }
+                                        }
+                                    </td>
+                                    <td>
+                                        @ri.Code
+                                    </td>
+                                    <td class="truck-@ri.Id">
+                                        @{
+                                            var selected_Id = -1;
+                                            if (assinged != null)
+                                            {
+                                                if (assinged.DriverId != null)
+                                                {
+                                                    selected_Id = (int)assinged.DriverId;
+                                                }
+                                            }
+                                            else if (truck_assign != null)
+                                            {
+                                                selected_Id = truck_assign.DriverId;
+                                            }
+                                        }
+                                        @if (item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.Id) && driver.Where(u => u.Id == selected_Id).FirstOrDefault() != null)
+                                        {
+                                            <span>
+                                                @driver.Where(u => u.Id == selected_Id).FirstOrDefault().FullName
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            if (selected_Id > 0)
+                                            {
+                                                @Html.DropDownList("DriverId" + item.Id + "_" + ri.Id, new SelectList(driver, "Id", "FullName", selected_Id), htmlAttributes: new { @onchange = "changeUserGroup1(" + item.Id + "," + ri.Id + ",this.value)", @class = "select2 form-control driverId d-driverId-" + item.Id, @disabled = "" })
+                                            }
+                                            else
+                                            {
+                                                @Html.DropDownList("DriverId" + item.Id + "_" + ri.Id, new SelectList(driver, "Id", "FullName"), htmlAttributes: new { @onchange = "changeUserGroup1(" + item.Id + "," + ri.Id + ",this.value)", @class = "select2 form-control driverId d-driverId-" + item.Id, @disabled = "" })
+                                            }
+                                        }
+                                    </td>
+                                    <td class="truck-@ri.Id">
+                                        @{
+                                            selected_Id = -1;
+                                            if (assinged != null)
+                                            {
+                                                if (assinged.OperatorId != null)
+                                                {
+                                                    selected_Id = (int)assinged.OperatorId;
+                                                }
+                                            }
+                                            else if (truck_assign != null)
+                                            {
+                                                selected_Id = truck_assign.TechnicalerId;
+                                            }
+                                        }
+                                        @if (item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL && r.Status == REFUEL_ITEM_STATUS.DONE).Select(f => f.TruckId).Contains(ri.Id) && oper.Where(u => u.Id == selected_Id).FirstOrDefault() != null)
+                                        {
+                                            <span>
+                                                @oper.Where(u => u.Id == selected_Id).FirstOrDefault().FullName
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            if (selected_Id > 0)
+                                            {
+                                                @Html.DropDownList("OperatorId" + item.Id + "_" + ri.Id, new SelectList(oper, "Id", "FullName", selected_Id), htmlAttributes: new { @onchange = "changeUserGroup2(" + item.Id + "," + ri.Id + ",this.value)", @class = "select2 form-control operatorId d-operatorId-" + item.Id, @disabled = "" })
+                                            }
+                                            else
+                                            {
+                                                @Html.DropDownList("OperatorId" + item.Id + "_" + ri.Id, new SelectList(oper, "Id", "FullName"), htmlAttributes: new { @onchange = "changeUserGroup2(" + item.Id + "," + ri.Id + ",this.value)", @class = "select2 form-control operatorId d-operatorId-" + item.Id + "", @disabled = "" })
+                                            }
+                                        }
+                                    </td>
+                                    <td>
+                                        <input disabled name="all_trucks" type="checkbox" value="" title="Áp dụng cho tất cả các chuyến bay có xe tra nạp này." class="all-trucks checkbox2" />
+                                    </td>
+                                    @if (i == 0)
+                                    {
+                                        if (viewOnly)
+                                        {
+                                            <td class="rspn next-sh-button" rowspan="@spn">
+                                                <div class="action">
+                                                    <span class="btn-header fa fa-edit"></span>
+                                                    <div class="btn-content">
+                                                        <a onclick="refuelInfo(@item.Id)" class="btn-detail">
+                                                            Chi tiết
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        }
+                                        else
+                                        {
+
+                                            <td class="rspn" rowspan="@spn">
+                                                <div class="action">
+                                                    <span class="btn-header fa fa-edit"></span>
+                                                    <div class="btn-content">
+                                                        @if (item.Status != FlightStatus.CANCELED)
+                                                        {
+                                                            <div class="hide-cancel-@item.Id">
+                                                                <a onclick="fback(@item.Id, @spn)" class="pointer btn-fback hidden">
+                                                                    Quay về
+                                                                </a>
+                                                                <a onclick="refuel(@item.Id, @spn, 1,@order)" class="pointer btn-save hidden btn-save-@item.Id">
+                                                                    Lưu
+                                                                </a>
+                                                                <a class="hidden img-wait-@item.Id"><img src="~/admin-lte2.4/img/wait.svg" height="30" /></a>
+                                                                @if (User.IsInRole("Điều hành"))
+                                                                {
+                                                                    if (User.IsInRole("Tra nạp"))
+                                                                    {
+                                                                        <a onclick="showtruck(@item.Id, @trucks.Count())" class="pointer btn-assign">@(item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.Id) ? "Phân công lại" : "Phân công")</a>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <a onclick="showtruck(@item.Id, @trucks.Count())" class="pointer btn-assign">@(item.RefuelItems.Where(r => r.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL).Select(f => f.TruckId).Contains(ri.Id) ? "Phân công lại" : "Phân công")</a>
+                                                                }
+                                                                @if (User.IsInRole("Tra nạp"))
+                                                                {
+                                                                    if (User.IsInRole("Điều hành"))
+                                                                    {
+                                                                        <a class="pointer btn-edit" onclick="getbyId(@item.Id)">
+                                                                            Sửa
+                                                                        </a>
+                                                                        <a class="pointer btn-cancel" onclick="cancel(@item.Id)">
+                                                                            Hủy chuyến
+                                                                        </a>
+                                                                        <a class="pointer btn-follow" onclick="follow(@item.Id)">
+                                                                            @(item.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                                                        </a>
+                                                                        <a onclick="fdelete(@item.Id)" class="pointer btn-delete">Xóa</a>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <a class="pointer btn-edit" onclick="getbyId(@item.Id)">
+                                                                        Sửa
+                                                                    </a>
+                                                                    <a class="pointer btn-cancel" onclick="cancel(@item.Id)">
+                                                                        Hủy chuyến
+                                                                    </a>
+                                                                    <a class="pointer btn-follow" onclick="follow(@item.Id)">
+                                                                        @(item.Follow == 1 ? "Hủy theo dõi" : "Theo dõi")
+                                                                    </a>
+                                                                    <a onclick="fdelete(@item.Id)" class="pointer btn-delete">Xóa</a>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        <a class="btn-detail" onclick="refuelInfo(@item.Id)">Chi tiết</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        }
+                                    }
+                                </tr>
+                                    i++;
+                                }
+                            }
+                        }
+                        <tr class="item-flight-after-@item.Id sh-div hidden">
+                            <td colspan="14">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <span>Hãng bay: </span>
+                                        @if (item.Airline != null)
+                                        {
+                                            <span class="bold @(lst_changelot.FirstOrDefault(c => c.NewValues == item.Airline.Name && c.EntityId == item.Id) != null ? "changed" : "")">@item.Airline.Name</span>
+                                        }
+                                        else
+                                        {
+                                            <span>---</span>
+                                        }
+                                    </div>
+                                    <div class="col-md-12">
+                                        <h4>Ghi chú</h4>
+                                        <hr />
+                                        <div id="Note-@item.Id">@Html.Raw(item.Note)</div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <a class="lightbox pull-right" target="_blank" href="@Url.Action("CreateExtract", new { flightId = item.Id, returnUrl = Request.Url.PathAndQuery })">
+                                            <i class="fa fa-plus"></i> Tạo mới hút nhiên liệu
+                                        </a>
+                                        @if (User.IsInRole("Super Admin"))
+                                        {
+                                            <a class="btn btn-primary pull-right" href="@Url.Action("CreateRefuelItem", new { flightId = item.Id,returnUrl = Request.Url.PathAndQuery })"><i class="fa fa-plus"></i> Tạo mới tra nạp</a>
+                                        }
+                                        <br />
+                                        <div id="refuelInfo_@item.Id" class="text-center refuel-info">
+                                            <img src="~/admin-lte2.4/img/wait.svg" id="img_wait" height="60" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div id="bottom_anchor"></div>
+        </div>
+    </div>
+    <div class="box-footer">
+        @Html.Pager(new PagerOptions { ItemCount = ViewBag.ItemCount, VisibleItemCount = 7, PageSize = p_count }, null)
+        @*@Html.Partial("Pager", (PagingViewModel)ViewBag.PageModel)*@
+    </div>
+</div>
+<div class="modal fade" id="modal-create">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Cập nhật chuyến bay</h4>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="flight_Id" name="flight_Id" />
+                <div class="form-group">
+                    @Html.Label("Số hiệu", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <input type="text" class="form-control" id="AircraftCode_Edit" name="AircraftCode_Edit" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Số chuyến", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <input type="text" class="form-control" id="Code_Edit" name="Code_Edit" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Charter", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        @Html.DropDownList("AirlineId", null, "-- Chọn Charter --", htmlAttributes: new { @class = "select2" })
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Chuyên chở", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <select class="select2" id="FlightCarry_Edit" name="FlightCarry_Edit">
+                            <option value="0">PAX</option>
+                            <option value="1">CCO</option>
+                            <option value="2">CGO</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Bãi đỗ", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <input type="text" class="form-control" id="Parking_Edit" name="Parking_Edit" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Đường bay", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <input type="text" class="form-control" id="RouteName_Edit" name="RouteName_Edit" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Loại tàu bay", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <input type="text" class="form-control" id="AircraftType_Edit" name="AircraftType_Edit" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Ngày nạp dầu", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <div class="input-group">
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                            <input type="text" id="RefuelScheduledTime_" class="form-control pull-right datepicker" readonly>
+                            <input type="hidden" class="form-control" id="RefuelScheduledTime_Edit" name="RefuelScheduledTime_Edit" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Sản lượng dự kiến", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <input type="text" class="form-control text-danger" id="EstimateAmount_Edit" name="EstimateAmount_Edit" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Giờ hạ cánh dự kiến", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <input type="text" class="form-control timepicker2" id="ArrivalScheduledTime_Edit" name="ArrivalScheduledTime_Edit" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Giờ cất cánh dự kiến", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <input type="text" class="form-control timepicker2" id="DepartureScheduledTime_Edit" name="DepartureScheduledTime_Edit" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Giờ nạp dầu", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <input type="text" class="form-control timepicker2" id="RefuelScheduledHours_Edit" name="RefuelScheduledHours_Edit" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.Label("Ghi chú", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <textarea class="form-control" cols="20" id="Note_Edit" name="Note_Edit" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Đóng</button>
+                <button type="submit" class="btn btn-primary" onclick="Update()">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts
+{
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>
+    <script src="~/admin-lte2.4/plugins/DataTables/datatables.min.js"></script>
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+    <script src="https://momentjs.com/downloads/moment.js"></script>
+
+    @*<script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>*@
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+
+    <link rel="stylesheet" type="text/css" href="~/Content/Lightbox/magnific-popup.css" />
+    <script src="~/Content/Lightbox/jquery.magnific-popup.js"></script>
+    <script>
+        setInterval(function () {
+            $(".item-color").each(function () {
+
+                itemDate = $(this).find("[data-val]").data("val");
+                if (moment().diff(moment(itemDate, "MM/DD/YYYY h:mm:ss a"), "minute") < -@setTime && moment().diff(moment(itemDate, "MM/DD/YYYY h:mm:ss a"), "minute") > -(@setTime + 60)) {
+                    $(this).find(".set-color").css("background-color", "green");
+                    $(this).find(".set-color").css("color", "white");
+                }
+
+                else if (moment().diff(moment(itemDate, "MM/DD/YYYY h:mm:ss a"), "minute") > @setTime && moment().diff(moment(itemDate, "MM/DD/YYYY h:mm:ss a"), "minute") < (@setTime + 60)) {
+                    $(this).find(".set-color").css("background-color", "red");
+                    $(this).find(".set-color").css("color", "white");
+                }
+
+                else if (moment().diff(moment(itemDate, "MM/DD/YYYY h:mm:ss a"), "minute") > -@setTime && moment().diff(moment(itemDate, "MM/DD/YYYY h:mm:ss a"), "minute") < @setTime) {
+                    $(this).find(".set-color").css("background-color", "orange");
+                    $(this).find(".set-color").css("color", "white");
+                }
+            })
+        }, 1000);
+
+        $(document).ready(function () {
+            $('.lightbox').magnificPopup({ type: 'iframe' });
+
+            $('.box .check input[type=checkbox]').change(function () {
+                if ($('.box .check input:checked').length >= 1) {
+                    $(".box .sh-copy").removeClass("hidden");
+                    $(".box .btn-delete").removeClass("hidden");
+                }
+                else {
+                    $(".box .sh-copy").addClass("hidden");
+                    $(".box .btn-delete").addClass("hidden");
+                }
+            })
+
+            //$('.checkbox input').change(function () {
+            //    var _parent = $(this).parents(".parent");
+            //    _parent.find(".refuel").removeClass("hidden");
+            //    if (!this.checked) {
+            //        _parent.find(".refuel").addClass("hidden");
+            //    }
+            //    return false;
+            //});
+
+            //$(".refuel").click(function () {
+            //    var _this = $(this);
+            //    var val = _this.parents(".parent").find(".is-check:checked").val();
+            //    $('#modal-refuel').find("#id").val(val);
+
+            //    $.ajax({
+            //        url: _this.data("submit"),
+            //        type: 'post',
+            //        data: {
+            //            id: _this.data("id"),
+            //        },
+            //        dataType: 'json',
+            //        success: function (json) {
+            //            if (json.Status == 0) {
+            //                $(".flight-info .aircraft-type span.ctn").html(json.aircraftType);
+            //                $(".flight-info .aircraft-code span.ctn").html(json.aircraftCode);
+            //            }
+            //            return false;
+            //        },
+            //        error: function (xhr, ajaxOptions, thrownError) {
+            //            alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+            //            return false;
+            //        }
+            //    });
+
+            //    $('#modal-refuel').modal('show');
+            //    return false;
+            //});
+
+            //$('.checkbox2').change(function () {
+            //    var _parent = $(this).parents(".item");
+            //    _parent.find(".name i").removeClass("hidden");
+            //    if (!this.checked) {
+            //        _parent.find(".name i").addClass("hidden");
+            //    }
+            //    return false;
+            //});
+        });
+
+        $('#check_All').click(function () {
+            $('.item .c-copy').prop('checked', this.checked);
+        });
+
+        //$(function () {
+        //    $(".dpicker").datepicker({ format: "dd/mm/yyyy", autoclose: true });
+        //});
+
+        @*$("#f_date").click(function () {
+            var fdate = $("#from_date").val();
+            var tdate = $("#to_date").val();
+            var airport = $("#airport").val();
+
+            if (airport == "" || airport == undefined) {
+                window.location = "@Url.Action("Index")" + "?fd=" + fdate + "&td=" + tdate;
+            }
+            else {
+                window.location = "@Url.Action("Index")" + "?fd=" + fdate + "&td=" + tdate + "&a=" + airport;
+            }
+        })*@
+
+        @*$("#rf_select").click(function () {
+            var rfdate = $("#rf_date").val();
+
+            if (rfdate == "") {
+                alert("Chọn ngày copy đến");
+                return false;
+            }
+            else {
+                window.location = "@Url.Action("Index")" + "?rfd=" + rfdate;
+            }
+        })*@
+
+
+
+        function closemodal(data) {
+            if (data.result == "OK") {
+                $('#modal-create').modal('hide');
+                location.reload();
+            }
+        }
+        //$(function () {
+        //    // $("#table").DataTable({ "scrollX": true , "paging":false, "searching":false, "info":false})
+        //})
+
+        $(function () {
+            $(".select2").select2();
+
+            $(".datepicker").datepicker({
+                format: "dd/mm/yyyy",
+                autoclose: true,
+            });
+
+            $('.timepicker').timepicker({
+                showInputs: false,
+                showMeridian: false,
+                minuteStep: 1
+            })
+
+            $('.timepicker2').timepicker({
+                defaultTime: '',
+                showInputs: false,
+                showMeridian: false,
+                minuteStep: 1
+            })
+
+            //$(".next-sh-button").on('click', function () {
+            //    var _next = $(this).parent().nextAll('.sh-div').first();
+            //    $('.sh-div').hide();
+
+            //    if (_next.hasClass('hidden')) {
+            //        _next.removeClass('hidden');
+            //        _next.show();
+            //    }
+            //    else {
+            //        _next.hide();
+            //        _next.addClass('hidden');
+            //    }
+            //});
+
+            var start = @Html.Raw(startD);
+            var end = @Html.Raw(endD);
+
+            function cb(start, end) {
+                $('#daterange span').html(start.format('DD/MM/YYYY H:mm') + ' - ' + end.format('DD/MM/YYYY H:mm'));
+                $('input[name=daterange]').val(start.format('DD/MM/YYYY H:mm') + '-' + end.format('DD/MM/YYYY H:mm'));
+            }
+
+            $('#daterange').daterangepicker({
+                timePicker: true,
+                timePicker24Hour: true,
+                timePickerIncrement: 1,
+                "locale": {
+                    "format": "DD/MM/YYYY H:mm",
+                    "separator": " - ",
+                    "applyLabel": "Chọn",
+                    "cancelLabel": "Đóng",
+                    "fromLabel": "Từ",
+                    "toLabel": "Đến",
+                    "customRangeLabel": "Tùy chọn",
+                    "weekLabel": "W",
+                    "daysOfWeek": [
+                        "Su",
+                        "Mo",
+                        "Tu",
+                        "We",
+                        "Th",
+                        "Fr",
+                        "Sa"
+                    ],
+                    "monthNames": [
+                        "Tháng 1",
+                        "Tháng 2",
+                        "Tháng 3",
+                        "Tháng 4",
+                        "Tháng 5",
+                        "Tháng 6",
+                        "Tháng 7",
+                        "Tháng 8",
+                        "Tháng 9",
+                        "Tháng 10",
+                        "Tháng 11",
+                        "Tháng 12"
+                    ],
+                    "firstDay": 1
+                },
+                startDate: start,
+                endDate: end,
+                ranges: {
+                    'Hôm nay': [moment().hours(0).minutes(0), moment().hours(23).minutes(59)],
+                    'Hôm qua': [moment().subtract(1, 'days').hours(0).minutes(0), moment().subtract(1, 'days').hours(23).minutes(59)],
+                    '7 ngày gần đây': [moment().subtract(6, 'days').hours(0).minutes(0), moment().hours(23).minutes(59)],
+                    '30 ngày gần đây': [moment().subtract(29, 'days').hours(0).minutes(0), moment().hours(23).minutes(59)],
+                    'Tháng này': [moment().startOf('month').hours(0).minutes(0), moment().endOf('month').hours(23).minutes(59)],
+                    'Tháng trước': [moment().subtract(1, 'month').startOf('month').hours(0).minutes(0), moment().subtract(1, 'month').endOf('month').hours(23).minutes(59)]
+                },
+                alwaysShowCalendars: true
+
+            }, cb);
+
+            cb(start, end);
+
+            $('#rf_date').daterangepicker({
+                singleDatePicker: true,
+                showDropdowns: true,
+                locale:{ "format": "DD/MM/YYYY"}
+            }, function(start, end, label) {
+
+                });
+
+        });
+
+        $.fn.copy = function (options) {
+            var settings = $.extend({
+                'url': '',
+                'selector': '',
+                'param': 'id'
+            }, options);
+
+            $(this).click(function (e) {
+
+                var rfdate = $("#rf_date").val();
+                if (rfdate == "") {
+                    alert("Chọn ngày copy đến");
+                    return false;
+                }
+
+                if (!confirm("Bạn muốn copy những dòng đã chọn ?")) return false;
+                e.preventDefault();
+                var url = settings.url;
+                var values = '';
+                var param = settings.param;
+                $(settings.selector).filter(":checked").each(function () {
+                    values += (values ? "," : "") + $(this).val();
+                });
+                if (values != '')
+                    $.ajax({
+                        url: url,
+                        data: param + '=' + values + "&date=" + $("#rf_date").val(),
+                        type: 'post',
+                        success: function (data, status, xhr) {
+                            if (data.Status == 0)
+                                window.location.reload();
+                            else
+                                alert(data.Message);
+                        }
+                    });
+            });
+        };
+
+        $("#copy").copy({
+            url: '@Url.Action("Copy")',
+            selector: ".item .check .c-copy",
+        });
+
+        $.fn.delete = function (options) {
+            var settings = $.extend({
+                'url': '',
+                'selector': '',
+                'param': 'id'
+            }, options);
+
+            $(this).click(function (e) {
+                if (!confirm("Bạn muốn xóa những dòng đã chọn ?")) return false;
+                e.preventDefault();
+                var url = settings.url;
+                var values = '';
+                var param = settings.param;
+                $(settings.selector).filter(":checked").each(function () {
+                    values += (values ? "," : "") + $(this).val();
+                });
+                if (values != '')
+                    $.ajax({
+                        url: url,
+                        data: param + '=' + values + "&date=" + $("#rf_date").val(),
+                        type: 'post',
+                        success: function (data, status, xhr) {
+                            if (data.Status == 0)
+                                window.location.reload();
+                            else
+                                alert(data.Message);
+                        }
+                    });
+            });
+        };
+
+        $("#deleteS").delete({
+            url: '@Url.Action("DeleteS")',
+            selector: ".item .check .is-check",
+        });
+
+
+        function fback(id, spn) {
+            $(".item-flight-" + id + ".fhide").each(function () {
+                $(this).addClass("hidden");
+            });
+
+            $(".item-flight-" + id + " .rspn").each(function () { $(this).attr('rowspan', spn); });
+            $(".item-flight-" + id + " .btn-assign").show();
+            $(".item-flight-" + id + " .btn-save").addClass("hidden");
+            $(".item-flight-" + id + " .btn-fback").addClass("hidden");
+            $(".item-flight-" + id).each(function () {
+                $(this).find("input.checkbox2").attr('disabled', 'disabled');
+                $(this).find("select").attr('disabled', 'disabled');
+            });
+        }
+
+        function appback(id) {
+            $(".item-refuel-" + id + " .btn-approve").show();
+            $(".item-refuel-" + id + " .btn-save").addClass("hidden");
+            $(".item-refuel-" + id + " .btn-fback").addClass("hidden");
+            $(".item-refuel-" + id).each(function () {
+                $(this).find("select").attr('disabled', 'disabled');
+            });
+        }
+
+        function showtruck(id, spn) {
+            $(".item-flight-" + id + ".fhide").each(function () {
+                $(this).removeClass("hidden");
+            });
+            $(".item-flight-" + id + " .rspn").each(function () { $(this).attr('rowspan', spn); });
+
+            $(".item-flight-" + id + " .btn-assign").hide();
+            $(".item-flight-" + id + " .btn-save").removeClass("hidden");
+            $(".item-flight-" + id + " .btn-fback").removeClass("hidden");
+
+            $(".item-flight-" + id).each(function () {
+                $(this).find("input.checkbox2").removeAttr("disabled");
+                $(this).find("select").removeAttr("disabled");
+            });
+        }
+
+        function showapp(id) {
+            $(".item-refuel-" + id + " .btn-approve").hide();
+            $(".item-refuel-" + id + " .btn-save").removeClass("hidden");
+            $(".item-refuel-" + id + " .btn-fback").removeClass("hidden");
+
+            $(".item-refuel-" + id).each(function () {
+                $(this).find("select").removeAttr("disabled");
+            });
+        }
+
+        function refuel(id, spn, item, order) {
+            var sp = spn;
+            $(".img-wait-" + id).removeClass("hidden");
+            $(".btn-save-" + id).addClass("hidden");
+            var json = [];
+            if (item == "0") {
+                    var truckId = $(".item-flight-" + id + " .truckId").val();
+                    var driverId = $(".item-flight-" + id + " .driverId").val();
+                    var operatorId = $(".item-flight-" + id + " .operatorId").val();
+                    json.push({
+                        "truckId": truckId,
+                        "driverId": driverId,
+                        "operatorId": operatorId
+                    });
+            }
+            else {
+                $(".item-flight-" + id + " input.trucks:checkbox:checked").each(
+                    function () {
+                        var all_trucks = 0;
+                        var truckId = $(this).val();
+                        var driverId = $(this).parents(".item-flight-" + id).find(".driverId").val();
+                        var operatorId = $(this).parents(".item-flight-" + id).find(".operatorId").val();
+                        if ($(this).parents(".item-flight-" + id).find(".all-trucks").is(":checked")) {
+                            all_trucks = 1;
+                        }
+                        json.push({
+                            "truckId": truckId,
+                            "driverId": driverId,
+                            "operatorId": operatorId
+                        });
+                    });
+            }
+            //if (json.length > 0) {
+                $.ajax({
+                    url: '@Url.Action("JRefuel")',
+                    type: 'POST',
+                    data: "json=" + JSON.stringify(json) + "&id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            ////$("#img_wait").addClass("hidden");
+                            //$(".item-flight-" + id + ".fhide").each(function () {
+                            //    $(this).addClass("hidden");
+                            //});
+                            //$(".item-flight-" + id + " .rspn").each(function () { $(this).attr('rowspan', spn); });
+                            //$(".item-flight-" + id + " .btn-assign").show();
+                            //$(".item-flight-" + id + " .btn-save").addClass("hidden");
+                            //$(".item-flight-" + id + " .btn-fback").addClass("hidden");
+                            //$(".item-flight-" + id).each(function () {
+                            //    $(this).find("input.checkbox2").attr('disabled', 'disabled');
+                            //    $(this).find("select").attr('disabled', 'disabled');
+                            //});
+
+
+
+                            //$(".item-flight-" + id + " input[name='trucks']:checked").each(function () {
+                            //    $(this).parent().parent().addClass("warning");
+                            //});
+                            //if ($(".item-flight-" + id + " input[name='trucks']:checked").length >= 1) {
+                            //    $(".item-flight-" + id + " a.btn-assign").html("Phân công lại");
+                            //}
+                            //else {
+                            //    $(".item-flight-" + id + " a.btn-assign").html("Phân công");
+                            //}
+
+                            //alert(data.Message);
+                            flightItem(id,order);
+                            //refuelInfo(id);
+
+                           // window.location.reload();
+                        }
+                    },
+                });
+            //}
+        }
+
+        function approve(id) {
+            var approveStatus = $(".item-refuel-" + id + " .approve-status").val();
+                $.ajax({
+                    url: '@Url.Action("JApprove")',
+                    type: 'POST',
+                    data: "status=" + approveStatus + "&id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            alert(data.Message);
+                            $(".item-refuel-" + id + " .btn-approve").show();
+                            $(".item-refuel-" + id + " .btn-save").addClass("hidden");
+                            $(".item-refuel-" + id + " .btn-fback").addClass("hidden");
+                            $(".item-refuel-" + id).each(function () {
+                                $(this).find("select").attr('disabled', 'disabled');
+                            });
+                            window.location.reload();
+                        }
+                    },
+                });
+        }
+
+        function fdelete(id) {
+            if (confirm("Bạn chắc chắn muốn xóa chuyến bay này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDelete")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            window.location.reload();
+                        }
+                    },
+                });
+            }
+                return false;
+        }
+
+        function refuelInfo(id) {
+                var _next = $(".sh-refuel-item-" + id).parent().nextAll('.sh-div').first();
+                $('.sh-div').hide();
+
+                if (_next.hasClass('hidden')) {
+                    _next.removeClass('hidden');
+                    _next.show();
+                }
+                else {
+                    _next.hide();
+                    _next.addClass('hidden');
+                }
+
+            var adDiv = $("#refuelInfo_" + id);
+            var rDiv = $(".refuel-info");
+                $.ajax({
+                    url: '@Url.Action("JRefuelInfo")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+
+                        rDiv.html('');
+                        adDiv.html(data);
+                    },
+                });
+        }
+
+        function flightItem(id,order) {
+        var rDiv = $(".item-flight-after-" + id);
+        var dDiv = $(".item-flight-" + id);
+                $.ajax({
+                    url: '@Url.Action("JFlightItem")',
+                    type: 'POST',
+                    data: "id=" + id + "&order=" + order,
+                    success: function (data) {
+                        dDiv.remove();
+                        rDiv.after(data);
+
+                        $('.item-flight-' + id + ' .order').html(order);
+                        $('.item-flight-' + id).removeClass('warning');
+                        $('.item-flight-' + id).removeClass('success');
+                        $('.item-flight-' + id).css('background-color', '#f8efc0');
+                        $(".img-wait-" + id).addClass("hidden");
+
+                        rDiv.remove();
+                    },
+                    error: function (errormessage) {
+                        alert(errormessage.responseText);
+                    }
+                });
+        }
+
+        function dateFormat(d) {
+            //console.log(d);
+            return (d.getDate() + "").padStart(2, "0")
+                + "/" + ((d.getMonth() + 1) + "").padStart(2, "0")
+                + "/" + d.getFullYear();
+        }
+
+        function timeFormat(d) {
+            //console.log(d);
+            return d.getHours() + ":" + d.getMinutes();
+        }
+
+        function maxYear(d) {
+            //console.log(d);
+            return d.getFullYear();
+        }
+
+        function changeDate() {
+
+            $(".datepicker").each(function () {
+                val = $(this).val();
+                var pattern = /(\d{2})\/(\d{2})\/(\d{4})/;
+                $(this).siblings("input[type=hidden]").val(val.replace(pattern, "$3/$2/$1"));
+            });
+            return true;
+        }
+
+        function getbyId(id) {
+
+                $.ajax({
+                    url: '@Url.Action("GetById")',
+                    type: 'GET',
+                    data: "id=" + id,
+                    contentType: "application/json;charset=UTF-8",
+                    dataType: "json",
+                    success: function (result) {
+                        r_date = dateFormat(new Date(parseInt((result.RefuelScheduledTime).match(/\d+/)[0])));
+                        $('#flight_Id').val(result.Id);
+                        $('#AircraftCode_Edit').val(result.AircraftCode);
+                        $('#Code_Edit').val(result.Code);
+                        $('#FlightCarry_Edit').val(result.FlightCarry).change();
+
+                        if ($("#AirlineId option[value='" + result.AirlineId + "']").length > 0) {
+                            $('#AirlineId').val(result.AirlineId).change();
+                        }
+
+                        $('#Parking_Edit').val(result.Parking);
+                        $('#RouteName_Edit').val(result.RouteName);
+                        $('#AircraftType_Edit').val(result.AircraftType);
+                        $('#RefuelScheduledTime_').val(r_date);
+                        $(".datepicker").datepicker("setDate", r_date);
+                        $('#EstimateAmount_Edit').val(result.EstimateAmount);
+
+                        if (result.ArrivalScheduledTime != null && maxYear(new Date(parseInt((result.ArrivalScheduledTime).match(/\d+/)[0]))) != "9999") {
+                            var r_time = timeFormat(new Date(parseInt((result.ArrivalScheduledTime).match(/\d+/)[0])));
+                            $('#ArrivalScheduledTime_Edit').val(r_time);
+                            $('#ArrivalScheduledTime_Edit').timepicker('setTime', r_time);
+                        }
+                        else {
+                            $('#ArrivalScheduledTime_Edit').val("");
+                        }
+
+                        $('#DepartureScheduledTime_Edit').val(timeFormat(new Date(parseInt((result.DepartureScheduledTime).match(/\d+/)[0]))));
+                        $('#DepartureScheduledTime_Edit').timepicker('setTime', new Date(parseInt((result.DepartureScheduledTime).match(/\d+/)[0])));
+
+                        $('#RefuelScheduledHours_Edit').val(timeFormat(new Date(parseInt((result.RefuelScheduledTime).match(/\d+/)[0]))));
+                        $('#RefuelScheduledHours_Edit').timepicker('setTime', new Date(parseInt((result.RefuelScheduledTime).match(/\d+/)[0])));
+                        $('#Note_Edit').val(result.Note);
+
+                        $('#modal-create').modal('show');
+                    },
+                    error: function (errormessage) {
+                        alert(errormessage.responseText);
+                    }
+                });
+        }
+
+
+        function Update() {
+            var regex_time = /^([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
+            var regex_nume = /^(\d*\.?\d*)$/;
+            var code_edit = $('#Code_Edit');
+            var estimateAmount_edit = $('#EstimateAmount_Edit');
+            var arrivalScheduledTime_edit = $('#ArrivalScheduledTime_Edit');
+            var departureScheduledTime_edit = $('#DepartureScheduledTime_Edit');
+            var refuelScheduledHours_edit = $('#RefuelScheduledHours_Edit');
+
+            if (code_edit.val() == "") {
+                alert("Vui lòng nhập số chuyến");
+                code_edit.focus();
+                return false;
+            }
+
+            if (!regex_nume.test(estimateAmount_edit.val()) || estimateAmount_edit.val() == "") {
+                alert("Sản lượng dự kiến phải là kiểu số");
+                estimateAmount_edit.val(0);
+                return false;
+            }
+
+            if (arrivalScheduledTime_edit.val() != "" && !regex_time.test(arrivalScheduledTime_edit.val()))
+            {
+                alert("Giờ hạ cánh dự kiến sai định dạng");
+                return false;
+            }
+
+            if (!regex_time.test(departureScheduledTime_edit.val()) || departureScheduledTime_edit.val() == "") {
+                alert("Giờ cất cánh dự kiến sai định dạng");
+                return false;
+            }
+
+            if (!regex_time.test(refuelScheduledHours_edit.val()) || refuelScheduledHours_edit.val() == "") {
+                alert("Giờ nạp dầu sai định dạng");
+                return false;
+            }
+            changeDate();
+            var id = $('#flight_Id').val();
+            var flight = {
+                Id: id,
+                AircraftCode: $('#AircraftCode_Edit').val(),
+                Code: $('#Code_Edit').val(),
+                AirlineId: $('#AirlineId').val(),
+                FlightCarry: $('#FlightCarry_Edit').val(),
+                Parking: $('#Parking_Edit').val(),
+                RouteName: $('#RouteName_Edit').val(),
+                AircraftType: $('#AircraftType_Edit').val(),
+                RefuelScheduledTime: $('#RefuelScheduledTime_Edit').val(),
+                EstimateAmount: $('#EstimateAmount_Edit').val(),
+                ArrivalScheduledTime: $('#ArrivalScheduledTime_Edit').val(),
+                DepartureScheduledTime: $('#DepartureScheduledTime_Edit').val(),
+                RefuelScheduledHours: $('#RefuelScheduledHours_Edit').val(),
+                Note: $('#Note_Edit').val(),
+            };
+            $.ajax({
+                url: '@Url.Action("JEdit")',
+                data: JSON.stringify(flight),
+                type: "POST",
+                contentType: "application/json;charset=utf-8",
+                dataType: "json",
+                success: function (result) {
+                    $('.item-flight-' + id).removeClass('warning');
+                    $('.item-flight-' + id).removeClass('success');
+                    $('.item-flight-' + id).css('background-color', '#f8efc0');
+
+                    $('.item-flight-' + id + ' #AircraftCode').html();
+                    $('.item-flight-' + id + ' #AircraftCode').html($('#AircraftCode_Edit').val());
+
+                    $('.item-flight-' + id + ' #Code').html();
+                    $('.item-flight-' + id + ' #Code').html($('#Code_Edit').val());
+
+                    $('.item-flight-' + id + ' #FlightCarry').html();
+                    $('.item-flight-' + id + ' #FlightCarry').html($('#FlightCarry_Edit').val() == 0 ? 'PAX' : $('#FlightCarry_Edit').val() == 1 ? 'CCO' : 'CGO');
+
+                    $('.item-flight-' + id + ' #Parking').html();
+                    $('.item-flight-' + id + ' #Parking').html($('#Parking_Edit').val());
+
+                    $('.item-flight-' + id + ' #RouteName').html();
+                    $('.item-flight-' + id + ' #RouteName').html($('#RouteName_Edit').val());
+
+                    $('.item-flight-' + id + ' #AircraftType').html();
+                    $('.item-flight-' + id + ' #AircraftType').html($('#AircraftType_Edit').val());
+
+                    $('.item-flight-' + id + ' #EstimateAmount').html();
+                    $('.item-flight-' + id + ' #EstimateAmount').html($('#EstimateAmount_Edit').val());
+
+                    $('.item-flight-' + id + ' #ArrivalScheduledTime').html();
+                    $('.item-flight-' + id + ' #ArrivalScheduledTime').html($('#ArrivalScheduledTime_Edit').val() == '' ? '---' : $('#ArrivalScheduledTime_Edit').val());
+
+                    $('.item-flight-' + id + ' #DepartureScheduledTime').html();
+                    $('.item-flight-' + id + ' #DepartureScheduledTime').html($('#DepartureScheduledTime_Edit').val());
+
+                    $('.item-flight-' + id + ' #RefuelScheduledHours').html();
+                    $('.item-flight-' + id + ' #RefuelScheduledHours').html($('#RefuelScheduledHours_Edit').val());
+
+                    $('#Note-' + id).val();
+                    $('#Note-' + id).html($('#Note_Edit').val())
+
+                    $('#modal-create').modal('hide');
+                    //alert("Đã cập nhật");
+                },
+                error: function (errormessage) {
+                    alert(errormessage.responseText);
+                }
+            });
+        }
+
+        function cancel(id)
+            {
+              if (confirm("Bạn chắc chắn muốn hủy chuyến bay này?"))
+                {
+                $.ajax({
+                    url: '@Url.Action("Cancel")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        $('.item-flight-' + id).removeClass('warning');
+                        $('.item-flight-' + id).removeClass('success');
+                        $('.item-flight-' + id).css('background-color', '#ddd');
+                        $('.hide-cancel-' + id).hide();
+                    },
+                    error: function (errormessage) {
+                        alert("Error");
+                    }
+                });
+                }
+        }
+
+        function follow(id)
+            {
+             $.ajax({
+                    url: '@Url.Action("Follow")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        $('.item-flight-' + id).removeClass('warning');
+                        $('.item-flight-' + id).removeClass('success');
+                        if ($('.item-flight-' + id).hasClass("follow")) {
+                            $('.item-flight-' + id).removeClass('follow');
+                        }
+                        else {
+                            $('.item-flight-' + id).addClass("follow");
+                        }
+
+                        $('.item-flight-' + id + ' .btn-follow').html("Hủy theo dõi");
+
+                    },
+                    error: function (errormessage) {
+                        alert("Error");
+                    }
+                });
+        }
+
+        function changeUserGroup1(fid, tid, val) {
+            $.ajax({
+                    url: '@Url.Action("GetUserGroup")',
+                    type: 'GET',
+                    data: "id=" + val,
+                    contentType: "application/json;charset=UTF-8",
+                    dataType: "json",
+                    success: function (result) {
+                        if (result.Status > 0) {
+                            $(".item-flight-" + fid + " .truck-" + tid + " .operatorId").val(result.Status).change();
+                        } 
+                    },
+                    error: function (errormessage) {
+                        alert("Error");
+                    }
+            });
+        }
+        function changeUserGroup2(fid, tid, val) {
+ 
+                @*$.ajax({
+                    url: '@Url.Action("GetUserGroup2")',
+                    type: 'GET',
+                    data: "id=" + val,
+                    contentType: "application/json;charset=UTF-8",
+                    dataType: "json",
+                    success: function (result) {
+                        if (result.Status > 0) {
+                            $(".item-flight-" + fid + " .truck-" + tid + " .driverId").val(result.Status);
+                        } 
+                    },
+                    error: function (errormessage) {
+                        alert("Error");
+                    }
+            });*@
+        }
+
+        //function moveScroll() {
+        //    var scroll = $(window).scrollTop();
+        //    var anchor_top = $("#table").offset().top;
+        //    var anchor_bottom = $("#bottom_anchor").offset().top;
+        //    if (scroll > anchor_top && scroll < anchor_bottom) {
+        //        clone_table = $("#clone");
+        //        if (clone_table.length == 0) {
+        //            clone_table = $("#table").clone();
+        //            clone_table.attr('id', 'clone');
+        //            clone_table.css({
+        //                position: 'fixed',
+        //                'pointer-events': 'none',
+        //                top: 0
+        //            });
+        //            clone_table.width($("#table").width());
+        //            $(".table-responsive").append(clone_table);
+        //            $("#clone").css({ visibility: 'hidden' });
+        //            $("#clone thead").css({ 'visibility': 'visible', 'pointer-events': 'auto' });
+        //            $(".check-all").attr('disabled', 'disabled');
+        //        }
+        //    }
+        //    else {
+        //        $("#clone").remove();
+        //        $(".check-all").removeAttr('disabled');
+        //    }
+        //}
+        //$(window).scroll(moveScroll);
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+}

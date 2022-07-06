@@ -1,0 +1,244 @@
+﻿
+@model FMS.Data.RefuelItem
+@{
+    var date = DateTime.Now;
+    Layout = "~/Views/Shared/_LayoutPopUp.cshtml";
+    ViewBag.Title = "Phân công tra nạp thêm";
+    var flightId = 0;
+    if (Request["flightId"] != null)
+    {
+        flightId = Convert.ToInt32(Request["flightId"]);
+    }
+    if (ViewBag.RefuelScheduledTime != null)
+    {
+        date = (DateTime)ViewBag.RefuelScheduledTime;
+    }
+}
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    <div class="form-horizontal">
+        <h2>@ViewBag.Title</h2>
+        <hr />
+        @*@Html.ValidationSummary(true, "", new { @class = "text-danger" })*@
+        @Html.HiddenFor(model => model.FlightId, new { @Value = flightId })
+        <div class="form-group">
+            @Html.Label("Xe", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-9">
+                @Html.DropDownList("TruckId", null, htmlAttributes: new { @class = "form-control select2" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Lái xe", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-9">
+                @Html.DropDownList("DriverId", null, htmlAttributes: new { @class = "form-control select2" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("NV tra nạp", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-9">
+                @Html.DropDownList("OperatorId", null, htmlAttributes: new { @class = "form-control select2" })
+            </div>
+        </div>
+        <div class="form-group hidden">
+            @Html.Label("Thời gian bắt đầu", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <input type="text" id="StartTime_" class="form-control datetimepicker" value="@date.ToString("dd/MM/yyyy HH:mm")">
+                @Html.HiddenFor(model => model.StartTime)
+                @*@Html.EditorFor(model => model.StartTime, new { htmlAttributes = new { @class = "form-control datetimepicker", @Value = date.ToString("dd/MM/yyyy HH:mm") } })
+                    @Html.ValidationMessageFor(model => model.StartTime, "", new { @class = "text-danger" })*@
+            </div>
+        </div>
+        <div class="form-group hidden">
+            @Html.Label("Thời gian kết thúc", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <input type="text" id="EndTime_" class="form-control datetimepicker" value="@date.ToString("dd/MM/yyyy HH:mm")">
+                @Html.HiddenFor(model => model.EndTime)
+                @*@Html.EditorFor(model => model.EndTime, new { htmlAttributes = new { @class = "form-control datetimepicker", @Value = date.ToString("dd/MM/yyyy HH:mm") } })
+                    @Html.ValidationMessageFor(model => model.EndTime, "", new { @class = "text-danger" })*@
+            </div>
+        </div>
+        <div class="form-group hidden">
+            @Html.Label("Số lượng Gallon", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @*@Html.EditorFor(model => model.Amount, new { htmlAttributes = new { @class = "form-control", @Value = 0 } })
+                    @Html.ValidationMessageFor(model => model.Amount, "", new { @class = "text-danger" })*@
+                @Html.EditorFor(model => model.Gallon, new { htmlAttributes = new { @class = "form-control", @Value = 0 } })
+                @Html.ValidationMessageFor(model => model.Gallon, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group hidden">
+            @Html.Label("Lít thực tế", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Volume, new { htmlAttributes = new { @class = "form-control", @Value = 0 } })
+                @Html.ValidationMessageFor(model => model.Volume, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group hidden">
+            @Html.Label("Số lượng kg", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Weight, new { htmlAttributes = new { @class = "form-control", @Value = 0 } })
+                @Html.ValidationMessageFor(model => model.Weight, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group hidden">
+            @Html.Label("Nhiệt độ", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.ManualTemperature, new { htmlAttributes = new { @class = "form-control", @Value = 0 } })
+                @Html.ValidationMessageFor(model => model.ManualTemperature, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group hidden">
+            @Html.Label("Tỷ trọng", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Density, new { htmlAttributes = new { @class = "form-control", @Value = 0 } })
+                @Html.ValidationMessageFor(model => model.Density, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group hidden">
+            @Html.Label("Phiếu hóa nghiệm", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.QCNo, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.QCNo, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group hidden">
+            @Html.Label("Mẫu hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownList("InvoiceFormId", null, htmlAttributes: new { @class = "form-control select2" })
+            </div>
+        </div>
+        <div class="form-group hidden">
+            @Html.Label("Số hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.InvoiceNumber, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.InvoiceNumber, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        @*<div class="form-group" style="display:none">
+                @Html.Label("Đã tra nạp", htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    <input type="checkbox" id="CreateType" name="CreateType" />
+                </div>
+            </div>*@
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input id="btn_save" type="submit" value="Lưu" class="btn btn-primary" />
+            </div>
+        </div>
+    </div>
+}
+@*<div>
+        @Html.ActionLink("Quay về danh sách", "Index")
+    </div>*@
+
+@section Scripts {
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>
+    <script type="text/javascript" src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment-with-locales.min.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.css" />
+
+    <script>
+        $(function () {
+            $(".select2").select2();
+            $('.datetimepicker').datetimepicker({
+                locale: 'vi',
+            })
+            //$('.timepicker').timepicker({
+            //    showInputs: false,
+            //    showMeridian: false
+            //})
+        });
+
+        $('#btn_save').click(function () {
+            changeDate();
+            //var regex = /^(\d*\.?\d*)$/;
+            //var regex_sp = /^\s+$/;
+            //var date_regex = /^((0?[1-9]|1[012])[/](0?[1-9]|[12][0-9]|3[01])[/](19|20)?[0-9]{2})*$/;
+
+            //var startTime_ = $('#StartTime');
+            //if (startTime_.val() == "") {
+            //    alert("Vui lòng nhập thời gian bắt đầu");
+            //    $('#StartTime_').focus();
+            //    return false;
+            //}
+
+            //var endTime_ = $('#EndTime');
+            //if (endTime_.val() == "") {
+            //    alert("Vui lòng nhập thời gian kết thúc");
+            //    $('#EndTime_').focus();
+            //    return false;
+            //}
+
+            //if (new Date(startTime_.val()) >= new Date(endTime_.val())) {
+            //    alert("Thời gian kết thúc phải lớn hơn thời gian bắt đầu");
+            //    return false;
+            //}
+
+            //var amount = $('#Amount');
+            //if (!regex.test(amount.val()) || amount.val() == "") {
+            //    alert("Số lượng Gallon phải là kiểu số");
+            //    amount.val(0);
+            //    return false;
+            //}
+
+            //var gallon = $('#Gallon');
+            //if (!regex.test(gallon.val()) || gallon.val() == "") {
+            //    alert("Số lượng Gallon phải là kiểu số");
+            //    gallon.val(0);
+            //    return false;
+            //}
+
+            //var volume = $('#Volume');
+            //if (!regex.test(volume.val()) || volume.val() == "") {
+            //    alert("Lít thực tế phải là kiểu số");
+            //    volume.val(0);
+            //    return false;
+            //}
+
+            //var weight = $('#Weight');
+            //if (!regex.test(weight.val()) || weight.val() == "") {
+            //    alert("Số lượng kg phải là kiểu số");
+            //    weight.val(0);
+            //    return false;
+            //}
+
+            //var manualTemperature = $('#ManualTemperature');
+            //if (!regex.test(manualTemperature.val()) || manualTemperature.val() == "") {
+            //    alert("Nhiệt độ phải là kiểu số");
+            //    manualTemperature.val(0);
+            //    return false;
+            //}
+
+            //var density = $('#Density');
+            //if (!regex.test(density.val()) || density.val() == "") {
+            //    alert("Tỷ trọng phải là kiểu số");
+            //    density.val(0);
+            //    return false;
+            //}
+
+            //var invoiceNumber = $('#InvoiceNumber');
+            //if (invoiceNumber.val() == "" || regex_sp.test(invoiceNumber.val())) {
+            //    alert("Vui lòng nhập số hóa đơn");
+            //    invoiceNumber.focus();
+            //    return false;
+            //}
+        });
+
+        function changeDate() {
+            $(".datetimepicker").each(function () {
+                val = $(this).val();
+                var pattern = /(\d{2})\/(\d{2})\/(\d{4})/;
+
+                $(this).siblings("input[type=hidden]").val(val.replace(pattern, "$3/$2/$1"));
+
+            });
+            return true;
+        }
+    </script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+    @* <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>*@
+}
+

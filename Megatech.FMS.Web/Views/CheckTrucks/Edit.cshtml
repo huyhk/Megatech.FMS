@@ -1,0 +1,440 @@
+﻿@model FMS.Data.CheckTruck
+
+@{
+    ViewBag.Title = "Sửa";
+    List<SelectListItem> lstResult = new List<SelectListItem>();
+    lstResult.Add(new SelectListItem() { Text = "KQ", Value = "" });
+    lstResult.Add(new SelectListItem() { Text = "S", Value = "S" });
+    lstResult.Add(new SelectListItem() { Text = "R", Value = "R" });
+    lstResult.Add(new SelectListItem() { Text = "A", Value = "A" });
+    lstResult.Add(new SelectListItem() { Text = "NA", Value = "NA" });
+    lstResult.Add(new SelectListItem() { Text = "GC", Value = "GC" });
+}
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+<div class="form-horizontal">
+    <h4>Phiếu bảo dưỡng hàng ngày</h4>
+    <hr />
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+    @Html.HiddenFor(model => model.Id)
+    @Html.HiddenFor(model => model.AirportId)
+    <div class="col-md-offset-2">
+        <div class="form-group">
+            <label class="col-md-12">Ca làm việc</label>
+            <div class="input-group">
+                <div class="col-md-10">
+                    @Html.DropDownList("ShiftId", null, htmlAttributes: new { @class = "form-control select2" })
+                    @Html.ValidationMessageFor(model => model.ShiftId, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">Biển số xe</label>
+            <div class="col-md-10">
+                @Html.DropDownList("TruckId", null, htmlAttributes: new { @class = "form-control select2" })
+                @Html.ValidationMessageFor(model => model.TruckId, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">Giờ :</label>
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.DateCreated, new { htmlAttributes = new { @class = "form-control timepicker", @Value = Model.DateCreated != null ? Model.DateCreated.ToString("hh:mm") : "" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">Ngày :</label>
+            <div class="col-md-10">
+                <div class="input-group">
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                    <input type="text" id="DateCreated" class="form-control pull-right datepicker" value="@Model.DateCreated.ToString("dd/MM/yyyy")">
+                    @Html.Hidden("DateCreated")
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">Số giờ/km hoạt động của xe :</label>
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.KmNumber, new { htmlAttributes = new { @class = "form-control" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">1.Kiểm tra kẹp, dây, cuộn dây tiếp mát trước xe :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result1", new SelectList(lstResult, "Value", "Text", Model.Result1), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note1, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">2.Kiểm tra niêm phong override :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result2", new SelectList(lstResult, "Value", "Text", Model.Result2), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note2, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">3.Kiểm tra kẹp, dây, cuộn dây tiếp mát bên hông :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result3", new SelectList(lstResult, "Value", "Text", Model.Result3), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note3, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">4.Kiểm tra ống mềm hông xe, vòng đai bảo vệ ống, đầu coupler, khớp quay coupler, khớp nối, nắp chắn bụi :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result4", new SelectList(lstResult, "Value", "Text", Model.Result4), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note4, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">5.Thực hiện xả đáy xi téc :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result5", new SelectList(lstResult, "Value", "Text", Model.Result5), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note5, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">6.Thực hiện xả đáy lọc :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result6", new SelectList(lstResult, "Value", "Text", Model.Result6), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note6, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">7.Kiểm tra bề ngoài xe :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result7", new SelectList(lstResult, "Value", "Text", Model.Result7), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note7, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">8.Kiểm tra tình trạng lốp :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result8", new SelectList(lstResult, "Value", "Text", Model.Result8), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note8, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">9.Kiểm tra cò nạp trên cánh :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result9", new SelectList(lstResult, "Value", "Text", Model.Result9), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note9, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">10. Kiểm tra họng nhập đáy :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result10", new SelectList(lstResult, "Value", "Text", Model.Result10), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note10, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">11.Kiểm tra bình cứu hỏa :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result11", new SelectList(lstResult, "Value", "Text", Model.Result11), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note11, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">12.Kiểm tra mức dầu động cơ :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result12", new SelectList(lstResult, "Value", "Text", Model.Result12), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note12, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">13.Xả nước lọc nhiên liệu :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result13", new SelectList(lstResult, "Value", "Text", Model.Result13), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note13, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">14.Kiểm tra nước làm mát :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result14", new SelectList(lstResult, "Value", "Text", Model.Result14), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note14, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">15.Kiểm tra mức dầu hộp số :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result15", new SelectList(lstResult, "Value", "Text", Model.Result15), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note15, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">16.Kiểm tra mức dầu hệ thống lái :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result16", new SelectList(lstResult, "Value", "Text", Model.Result16), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note16, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">17.Kiểm tra hoạt động, rò chảy qua khớp quay, ống mềm trên giàn nâng và đầu coupler :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result17", new SelectList(lstResult, "Value", "Text", Model.Result17), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note17, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">18.Kiểm tra tình trạng bình acquy, đầu cực acquy :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result18", new SelectList(lstResult, "Value", "Text", Model.Result18), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note18, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">19.Kiểm tra trạng thái và mức dầu thủy lực :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result19", new SelectList(lstResult, "Value", "Text", Model.Result19), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note19, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">20.Xả nước ở bình tích khí :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result20", new SelectList(lstResult, "Value", "Text", Model.Result20), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note20, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">21.Vệ sinh bình lấy mẫu :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result21", new SelectList(lstResult, "Value", "Text", Model.Result21), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note21, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">22.Kiểm tra chăn thấm dầu :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result22", new SelectList(lstResult, "Value", "Text", Model.Result22), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note22, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">23.Kiểm tra dụng cụ hóa nghiệm, thang gấp :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result23", new SelectList(lstResult, "Value", "Text", Model.Result23), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note23, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">24.Vệ sinh cabin và ngoài xe :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result24", new SelectList(lstResult, "Value", "Text", Model.Result24), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note24, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <h3>Thực hiện nổ máy và bơm quẩn</h3>
+        <div class="form-group">
+            <label class="col-md-12">25.Kiểm tra động cơ :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result25", new SelectList(lstResult, "Value", "Text", Model.Result25), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note25, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">26.Kiểm tra tình trạng dây deadman, hoạt động của deadman  :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result26", new SelectList(lstResult, "Value", "Text", Model.Result26), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note26, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">27.Kiểm tra hệ thống lái :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result27", new SelectList(lstResult, "Value", "Text", Model.Result27), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note27, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">28.Kiểm tra hoạt động của giản nâng (công tắc chống va chạm, khóa ngắt khẩn cấp) :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result28", new SelectList(lstResult, "Value", "Text", Model.Result28), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note28, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">29.Kiểm tra tầm nhìn của gương, còi xe, gạt mưa :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result29", new SelectList(lstResult, "Value", "Text", Model.Result29), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note29, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">30.Kiểm tra đèn tín hiệu, chiếu sáng, phanh và đèn xoay :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result30", new SelectList(lstResult, "Value", "Text", Model.Result30), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note30, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">31.Kiểm tra hệ thống phanh.Kiểm tra hệ thống phanh :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result31", new SelectList(lstResult, "Value", "Text", Model.Result31), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note31, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">32.Kiểm tra ít nhất một vị trí interlock trên xe :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result32", new SelectList(lstResult, "Value", "Text", Model.Result32), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note32, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">33.Kiểm tra hoạt động của các đồng hồ áp suất trên bảng điều khiển bên hông xe :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result33", new SelectList(lstResult, "Value", "Text", Model.Result33), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note33, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">34.Kiểm tra chênh áp bầu lọc và ghi lại thông tin :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result34", new SelectList(lstResult, "Value", "Text", Model.Result34), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note34, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">35.Kiểm tra lưu lượng kế :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result35", new SelectList(lstResult, "Value", "Text", Model.Result35), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note35, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-md-12">36.Kiểm tra hoạt động của bơm, dừng bơm khẩn cấp :</label>
+            <div class="col-md-3">
+                @Html.DropDownList("Result36", new SelectList(lstResult, "Value", "Text", Model.Result36), htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+            </div>
+            <div class="col-md-7">
+                @Html.EditorFor(model => model.Note36, new { htmlAttributes = new { @class = "form-control", @placeholder = "Ghi chú" } })
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-10">
+                <input type="submit" value="Lưu" class="btn btn-default" />
+            </div>
+        </div>
+        <div>
+            @Html.ActionLink("Quay về danh sách", "Index")
+        </div>
+    </div>
+</div>
+}
+
+
+
+@section Scripts {
+    <script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+    <script>
+
+
+    
+        $(function () {
+            $(".select2").select2();
+            $('.timepicker').timepicker({
+                showInputs: false,
+                showMeridian: false
+            });
+            $(".datepicker").datepicker({ format: "dd/mm/yyyy", autoclose: true });
+
+            
+        })
+
+
+        function changeDate()
+        {
+            $(".datepicker").each(function () {
+                val = $(this).val();
+                var pattern = /(\d{2})\/(\d{2})\/(\d{4})/;
+               $(this).siblings("input[type=hidden]").val(val.replace(pattern, "$3/$2/$1"));
+            });
+            return true;
+        }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+}
+

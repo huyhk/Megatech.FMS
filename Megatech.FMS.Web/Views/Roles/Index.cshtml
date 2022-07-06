@@ -1,0 +1,89 @@
+﻿@model IList<Microsoft.AspNet.Identity.EntityFramework.IdentityRole>
+@{
+    ViewBag.Title = "Nhóm người dùng";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Nhóm người dùng" }
+    );
+}
+
+<div class="box">
+    <div class="box-header">
+        <a class="btn btn-primary pull-right" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" /></th>
+                    <th>Tên nhóm</th>
+
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td><input type="checkbox" value="@item.Id" /></td>
+                        <td>@item.Name</td>
+                    </tr>
+
+                }
+            </tbody>
+            <tfoot></tfoot>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-create">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Thêm nhóm người dùng</h4>
+            </div>
+            
+            @using (Ajax.BeginForm("Create", new AjaxOptions { OnSuccess="closemodal" }))
+            {
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Tên nhóm</label>
+                        <input name="Name" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                </div>
+            }
+
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+
+@section Scripts {
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#create").click(function () {
+                
+                $('#modal-create').modal('show');
+                return false;
+            });
+        });
+        function closemodal(data) {
+            if (data.result == "OK") {
+                $('#modal-create').modal('hide');
+                location.reload();
+
+            }
+        }
+    </script>
+}

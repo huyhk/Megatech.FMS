@@ -1,0 +1,408 @@
+﻿<link rel="stylesheet" href="~/Content/datepicker/jquery.ui.datepicker.css" />
+@model IEnumerable<FMS.Data.Flight>
+@using EntityFramework.DynamicFilters;
+@{
+    /**/
+    var db = new DataContext();
+    ViewBag.Title = "Công tác tra nạp";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+        new BreadcrumbItem { Text = "Công tác tra nạp" }
+    );
+    var select_val = "";
+    if (Request["a"] != null)
+    {
+        select_val = Request["a"];
+    }
+    var airports = (List<Airport>)ViewBag.Airports;
+    var selectList = new SelectList(airports, "Id", "Name", select_val);
+    var startD = "moment().hours(0).minutes(0)";
+    var endD = "moment().hours(23).minutes(59)";
+    var daterange = "";
+    if (Request["daterange"] != null)
+    {
+        daterange = Request["daterange"];
+        var ranges = Request["daterange"].Split('-');
+        startD = "moment('" + ranges[0] + "','DD/MM/YYYY H:mm')";
+        endD = "moment('" + ranges[1] + "','DD/MM/YYYY H:mm')";
+    }
+    var date = DateTime.MinValue;
+    var index = 1;
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+    db.DisableFilter("IsNotDeleted");
+    var db_Trucks = db.Trucks.Where(t => t.IsDeleted).ToList();
+    db.EnableFilter("IsNotDeleted");
+}
+
+<div class="box">
+    <div class="box-header">
+        <div class="div-filter row">
+            <div class="col-md-6 pull-left row">
+                <form method="get">
+                    @if (User.IsInRole("Administrators") || User.IsInRole("Super Admin") || User.IsInRole("Quản lý tổng công ty") || User.IsInRole("Quản lý miền"))
+                    {
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label>Chọn thời gian tra nạp:</label>
+                                <div class="input-group">
+                                    <button type="button" class="btn btn-default pull-right" id="daterange">
+                                        <i class="fa fa-calendar"></i> <span>
+                                        </span>
+                                        <i class="fa fa-caret-down"></i>
+                                    </button>
+                                    @*@if (!User.IsInRole("Administrators") && !User.IsInRole("Super Admin"))
+                                        {
+                                            <div class="input-group-btn">
+                                                <button type="submit" class="btn btn-info"><i class="fa fa-filter"></i> Lọc/Thống kê</button>
+                                            </div>
+                                        }*@
+                                    <input type="hidden" name="daterange" />
+                                </div>
+                                @*<label>Từ ngày tra nạp</label>
+                                    <input type="text" id="from_date" class="dpicker txt" value="@(Request["fd"] != null? Request["fd"].ToString(): DateTime.Today.ToString("dd/MM/yyyy"))" />
+                                    <label>Đến ngày tra nạp</label>
+                                    <input type="text" id="to_date" class="dpicker txt" value="@(Request["td"] != null? Request["td"].ToString(): DateTime.Today.ToString("dd/MM/yyyy"))" />*@
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label>Chọn sân bay</label>
+                                <div class="input-group">
+                                    @Html.DropDownList("a", selectList, "Tất cả", new { @class = "txt select2", onchange = "change" })
+                                    <div class="input-group-btn">
+                                        <button type="submit" class="btn btn-info"><i class="fa fa-filter"></i> Lọc/Thống kê</button>
+                                        @*<input type="button" id="f_date" value="Lọc/Thống kê" class="btn btn-info" />*@
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-md-10">
+                            <div class="form-group">
+                                <label>Chọn thời gian tra nạp:</label>
+                                <div class="input-group">
+                                    <button type="button" class="btn btn-default pull-right" id="daterange">
+                                        <i class="fa fa-calendar"></i> <span>
+                                        </span>
+                                        <i class="fa fa-caret-down"></i>
+                                    </button>
+                                    <div class="input-group-btn">
+                                        <button type="submit" class="btn btn-info"><i class="fa fa-filter"></i> Lọc/Thống kê</button>
+                                    </div>
+                                    <input type="hidden" name="daterange" />
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </form>
+            </div>
+            @if (Model.Count() > 0)
+            {
+                <div class="col-md-6 pull-right">
+                    <a class="pull-right" href="@Url.Action("Export", "Flights", new { dr = daterange, a = select_val  })">
+                        <i class="fa fa-file-excel"></i>
+                        <span>Xuất ra Excel</span>
+                    </a>
+                </div>
+            }
+
+        </div>
+        @if (ViewBag.Total != null)
+        {
+            <span>Tổng lượng nhiên liệu đã tra nạp: </span> <span class="bold">@ViewBag.Total.ToString("#,##0") Gallon</span>
+        }
+    </div>
+    <div class="box-body">
+        <div class="scroll-bar-top" style="overflow-x: auto;width: 100%;overflow-y:hidden;margin-bottom:20px;">
+            <div id="div1" style="height:20px;"></div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered text-nowrap" id="table">
+                <thead>
+                    <tr>
+                        <th>Stt</th>
+                        <th>Thời gian</th>
+                        <th>
+                            Số hiệu <br /> tàu bay
+                        </th>
+                        <th>
+                            Số hiệu <br /> chuyến bay
+                        </th>
+                        <th>
+                            Hãng hàng không
+                        </th>
+                        <th>
+                            Số phiếu hóa nghiệm
+                        </th>
+                        <th>
+                            Ngày giờ <br /> tra nạp dự kiến
+                        </th>
+                        <th>
+                            Giờ bắt đầu<br />  tra nạp
+                        </th>
+                        <th>
+                            Giờ kết thúc<br /> tra nạp
+                        </th>
+                        <th>
+                            Xe tra nạp
+                        </th>
+                        <th>
+                            Lái xe
+                        </th>
+                        <th>
+                            NV kỹ thuật <br /> tra nạp
+                        </th>
+                        <th>
+                            Số đồng hồ <br /> bắt đầu
+                        </th>
+                        <th>
+                            Số đồng hồ <br /> kết thúc
+                        </th>
+                        <th>
+                            Lượng nhiên liệu <br /> đã tra nạp
+                        </th>
+                        <th>Nhiệt độ <br /> thực tế (độ C)</th>
+                        <th>Tỷ trọng <br /> thực tế </th>
+                        <th>Khối lượng (kg)</th>
+                        <th>Đơn giá</th>
+                        <th>Tổng tiền <br /> thanh toán</th>
+                        @*<th>
+                        Bãi đỗ
+                    </th>*@
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+
+                        if (item.RefuelScheduledTime.Value.Date != date)
+                        {
+                            date = item.RefuelScheduledTime.Value.Date;
+                            <tr class="info">
+                                <th colspan="20" scope="row">@date.ToString("dd/MM/yyyy")</th>
+                            </tr>
+                        }
+                        foreach (var ritem in item.RefuelItems.Where(r => r.Status == REFUEL_ITEM_STATUS.DONE))
+                        {
+                            <tr class="parent">
+                                <td>@(index++)</td>
+                                <td>@item.RefuelScheduledTime.Value.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.AircraftCode)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.Code)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.Airline.Name)
+                                </td>
+                                <td class="text-right">
+                                    <span class="ctn">@ritem.QCNo</span><br />
+                                </td>
+                                <td>
+                                    @*@Html.DisplayFor(modelItem => item.RefuelScheduledTime)*@
+                                    @*@item.RefuelScheduledTime.Value.ToString("dd/MM/yyyy")<br />*@
+                                    @item.RefuelScheduledTime.Value.ToString("HH:mm")
+                                </td>
+                                @*@Html.DisplayFor(modelItem => item.StartTime)*@
+                                <td>
+                                    @ritem.StartTime.ToString("HH:mm")<br />
+                                </td>
+                                <td>
+                                    @if (ritem.EndTime != null)
+                                    {
+                                        @ritem.EndTime.Value.ToString("HH:mm")<br />
+                                    }
+                                </td>
+                                <td>
+                                    @*<span class="ctn">
+                                    @(ritem.Truck != null ? ritem.Truck.Code : "")
+                                </span><br />*@
+                                    @if (ritem.Truck != null)
+                                    {
+                                        <span class="ctn">
+                                            @(ritem.Truck != null ? ritem.Truck.Code : "")
+                                        </span><br />
+
+                                    }
+                                    else
+                                    {
+                                        var truck_d = db_Trucks.FirstOrDefault(t => t.Id == ritem.TruckId);
+                                        if (truck_d != null)
+                                        {
+                                            <span class="ctn">@truck_d.Code</span><br />
+                                        }
+                                    }
+                                </td>
+                                <td>
+                                    <span class="ctn">@(ritem.Driver != null ? ritem.Driver.FullName : "")</span><br />
+                                </td>
+                                <td>
+                                    <span class="ctn">@(ritem.Operator != null ? ritem.Operator.FullName : "")</span><br />
+                                </td>
+                                <td class="text-right">
+                                    <span class="ctn">@Math.Round(ritem.StartNumber)</span><br />
+                                </td>
+                                <td class="text-right">
+                                    @*<span class="ctn">@Math.Round(ritem.EndNumber)</span><br />*@
+                                    <span class="ctn">@(Math.Round(ritem.StartNumber) + Math.Round(ritem.Amount))</span><br />
+                                </td>
+                                <td class="text-right">
+                                    <span class="ctn">@Math.Round(ritem.Amount).ToString("#,##0")</span><br />
+                                </td>
+                                <td class="text-right">
+                                    <span class="ctn">@Math.Round(ritem.ManualTemperature, 2).ToString("#,##0.00")</span><br />
+                                </td>
+                                <td class="text-right">
+                                    <span class="ctn">@Math.Round(ritem.Density, 4).ToString("#,##0.0000")</span><br />
+                                </td>
+                                <td class="text-right">
+                                    <span class="ctn">@Math.Round(ritem.Weight).ToString("#,##0")</span><br />
+                                </td>
+                                <td class="text-right">
+                                    <span class="ctn">@Math.Round(ritem.Price).ToString("#,##0")</span><br />
+                                </td>
+                                <td class="text-right">
+                                    <span class="ctn">@Math.Round(ritem.TotalSalesAmount).ToString("#,##0")</span><br />
+                                </td>
+                                @*<td class="text-center">
+                                @Html.DisplayFor(modelItem => item.Parking)
+                            </td>*@
+                            </tr>
+                        }
+
+                    }
+                </tbody>
+            </table>
+            <div id="bottom_anchor"></div>
+        </div>
+    </div>
+    <div class="box-footer">
+        @Html.Pager(new PagerOptions { ItemCount = ViewBag.ItemCount, VisibleItemCount = 7, PageSize = 20 }, null)
+        @*@Html.Partial("Pager", (PagingViewModel)ViewBag.PageModel)*@
+    </div>
+</div>
+
+@section Scripts
+{
+    @*<script src="~/Content/datepicker/datepicker.js"></script>*@
+    <script src="~/admin-lte2.4/plugins/DataTables/datatables.min.js"></script>
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+    <script src="https://momentjs.com/downloads/moment.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script>
+        $(function () {
+            $('#div1').css('width', $('#table').width());
+            $(".scroll-bar-top").scroll(function () {
+                $(".table-responsive").scrollLeft($(".scroll-bar-top").scrollLeft());
+            });
+            $(".table-responsive").scroll(function () {
+                $(".scroll-bar-top").scrollLeft($(".table-responsive").scrollLeft());
+            });
+
+            //$(".dpicker").datepicker({ format: "dd/mm/yyyy", autoclose: true });
+            var start = @Html.Raw(startD);
+            var end = @Html.Raw(endD);
+
+            function cb(start, end) {
+                $('#daterange span').html(start.format('DD/MM/YYYY H:mm') + ' - ' + end.format('DD/MM/YYYY H:mm'));
+                $('input[name=daterange]').val(start.format('DD/MM/YYYY H:mm') + '-' + end.format('DD/MM/YYYY H:mm'));
+            }
+
+            $('#daterange').daterangepicker({
+                timePicker: true,
+                timePicker24Hour: true,
+                timePickerIncrement: 1,
+                "locale": {
+                    "format": "DD/MM/YYYY H:mm",
+                    "separator": " - ",
+                    "applyLabel": "Chọn",
+                    "cancelLabel": "Đóng",
+                    "fromLabel": "Từ",
+                    "toLabel": "Đến",
+                    "customRangeLabel": "Tùy chọn",
+                    "weekLabel": "W",
+                    "daysOfWeek": [
+                        "Su",
+                        "Mo",
+                        "Tu",
+                        "We",
+                        "Th",
+                        "Fr",
+                        "Sa"
+                    ],
+                    "monthNames": [
+                        "Tháng 1",
+                        "Tháng 2",
+                        "Tháng 3",
+                        "Tháng 4",
+                        "Tháng 5",
+                        "Tháng 6",
+                        "Tháng 7",
+                        "Tháng 8",
+                        "Tháng 9",
+                        "Tháng 10",
+                        "Tháng 11",
+                        "Tháng 12"
+                    ],
+                    "firstDay": 1
+                },
+                startDate: start,
+                endDate: end,
+                ranges: {
+                    'Hôm nay': [moment().hours(0).minutes(0), moment().hours(23).minutes(59)],
+                    'Hôm qua': [moment().subtract(1, 'days').hours(0).minutes(0), moment().subtract(1, 'days').hours(23).minutes(59)],
+                    '7 ngày gần đây': [moment().subtract(6, 'days').hours(0).minutes(0), moment().hours(23).minutes(59)],
+                    '30 ngày gần đây': [moment().subtract(29, 'days').hours(0).minutes(0), moment().hours(23).minutes(59)],
+                    'Tháng này': [moment().startOf('month').hours(0).minutes(0), moment().endOf('month').hours(23).minutes(59)],
+                    'Tháng trước': [moment().subtract(1, 'month').startOf('month').hours(0).minutes(0), moment().subtract(1, 'month').endOf('month').hours(23).minutes(59)]
+                },
+                alwaysShowCalendars: true
+
+            }, cb);
+
+            cb(start, end);
+
+            $('#rf_date').daterangepicker({
+                singleDatePicker: true,
+                showDropdowns: true,
+                locale:{ "format": "DD/MM/YYYY"}
+            }, function(start, end, label) {});
+        });
+
+        @*$("#f_date").click(function () {
+            var fdate = $("#from_date").val();
+            var tdate = $("#to_date").val();
+            var airport = $("#airport").val();
+
+            if (fdate == "") {
+                alert("Chọn từ ngày");
+                return false;
+            }
+            else if (tdate == "") {
+                alert("Chọn đến ngày");
+                return false;
+            }
+            //else if (new Date(tdate) <= new Date(fdate))
+            //{
+            //    alert("Đến ngày phải lớn hơn từ ngày");
+            //    return false;
+            //}
+                else if (airport == "") {
+                window.location = "@Url.Action("RefuelHistory")" + "?fd=" + fdate + "&td=" + tdate;
+            }
+            else {
+                window.location = "@Url.Action("RefuelHistory")" + "?fd=" + fdate + "&td=" + tdate + "&a=" + airport;
+            }
+        })*@
+    </script>
+}

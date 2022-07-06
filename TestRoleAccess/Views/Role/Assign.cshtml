@@ -1,0 +1,43 @@
+﻿@using FMS.Data
+@model IEnumerable<Megatech.FMS.Data.Permissions.ControllerInfo>
+
+
+@{
+    ViewBag.Title = "Assign";
+    var role = (Role)ViewBag.Role;
+}
+
+@using (Html.BeginForm())
+{
+    @Html.Hidden("roleId",role.Id)
+
+<h2>Role Access Assign</h2>
+<p>@role.Name</p>
+   
+<table class="table table-bordered" >
+    <tr><th colspan="2" style="background:#eee"><h4>Group 1</h4></th></tr>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <th style="padding-left:20px">@item.DisplayName</th><th style="text-align:center"><input type="checkbox" /></th>
+        </tr>
+
+   
+   
+        foreach (var action in item.Actions)
+        {
+            <tr>
+                <td style="padding-left:50px">@(action.DisplayName ?? action.ActionName)</td>
+                <td style="text-align:center">@Html.CheckBox("chk", role.Actions.Select(a => a.Id).Contains(action.Id), new { value = action.Id })</td>
+            </tr>
+        }
+    
+
+
+    }
+</table>
+    <p>
+        <button type="submit" value="Save"></button>
+    </p>
+}
+

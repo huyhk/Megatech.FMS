@@ -1,0 +1,103 @@
+﻿@model FMS.Data.Shift
+
+@{
+    ViewBag.Title = "Tạo mới ca";
+
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Quản lý ca", Url = Url.Action("Index") },
+
+        new BreadcrumbItem { Text = "Tạo mới" }
+    );
+
+   
+}
+
+<div class="box">
+    <div class="box-header"></div>
+    <div class="box-body">
+
+        @using (Html.BeginForm())
+        {
+            @Html.AntiForgeryToken()
+
+            <div class="form-horizontal">
+                
+                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                <div class="form-group">
+                    @Html.LabelFor(model => model.AirportId, "Sân bay", htmlAttributes: new { @class = "control-label col-md-2" })
+                    <div class="col-md-10">
+                        @Html.DropDownList("AirportId", null, htmlAttributes: new { @class = "form-control select2" })
+                        @Html.ValidationMessageFor(model => model.AirportId, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Code, "Mã", htmlAttributes: new { @class = "control-label col-md-2" })
+                    <div class="col-md-10">
+                        @Html.EditorFor(model => model.Code, new { htmlAttributes = new { @class = "form-control" } })
+                        @Html.ValidationMessageFor(model => model.Code, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Name, "Tên", htmlAttributes: new { @class = "control-label col-md-2" })
+                    <div class="col-md-10">
+                        @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control" } })
+                        @Html.ValidationMessageFor(model => model.Name, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(model => model.StartTime, "Giờ bắt đầu", htmlAttributes: new { @class = "control-label col-md-2" })
+                    <div class="col-md-10">
+                        @Html.EditorFor(model => model.StartTime, new { htmlAttributes = new { @class = "form-control timepicker" } })
+                        @Html.ValidationMessageFor(model => model.StartTime, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(model => model.EndTime, "Giờ kết thúc", htmlAttributes: new { @class = "control-label col-md-2" })
+                    <div class="col-md-10">
+                        @Html.EditorFor(model => model.EndTime, new { htmlAttributes = new { @class = "form-control timepicker" } })
+                        @Html.ValidationMessageFor(model => model.EndTime, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+
+
+
+                <div class="form-group">
+                    <div class="col-md-offset-2 col-md-10">
+                        <a href="@Url.Action("Index")" class="btn btn-default">Trở về</a>
+                        <input type="submit" value="Lưu" class="btn btn-primary" />
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
+@section Scripts
+{
+<script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>
+
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script>
+        $(function () {
+            $(".select2").select2();
+            $('.select2').on('select2:select', function (e) {
+                var data = e.params.data;
+
+                change(data);
+            });
+
+            $('.timepicker').timepicker({
+                showInputs: false,
+                showMeridian: false
+            })
+        })
+        
+    </script>
+}

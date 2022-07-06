@@ -1,0 +1,303 @@
+﻿@model FMS.Data.CheckTruck
+
+@{
+    ViewBag.Title = "Chi tiết";
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+}
+
+
+
+<div class="box-body check-truck-detail">
+    <hr />
+    <h3 class="header text-center bold">PHIẾU BẢO DƯỠNG HÀNG NGÀY (CA LÀM VIỆC : @Model.Shift.Name)</h3>
+    <div class="text-center"><span class="bold">Biển số xe:</span> @Model.Truck.Code  <span class="bold">&nbsp;&nbsp;Giờ:</span> @Model.DateCreated.ToString("hh:mm"), <span class="bold">ngày:</span> @Model.DateCreated.ToString("dd/MM/yyyy") <span class="bold">&nbsp;&nbsp;Số giờ/km hoạt động của xe:</span> @Model.KmNumber</div>
+    <br /><br />
+    @if (viewOnly)
+    {
+        <p>
+            @Html.ActionLink("Quay về danh sách", "Index")
+        </p>
+    }
+    else
+    {
+        <p>
+            @Html.ActionLink("Sửa", "Edit", new { id = Model.Id }) |
+            @Html.ActionLink("Quay về danh sách", "Index")
+        </p>
+    }
+    <div class="table-responsive">
+        <table class="table table-bordered text-nowrap" id="table">
+            <thead>
+                <tr class="text-center">
+                    <th class="text-center">
+                        Số
+                    </th>
+                    <th class="text-center">Hạng mục kiểm tra</th>
+                    <th class="text-center">KQ</th>
+                    <th class="text-center">
+                        Ghi chú
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="text-center">1</td>
+                    <td>Kiểm tra kẹp, dây, cuộn dây tiếp mát trước xe</td>
+                    <td class="text-center">@Model.Result1</td>
+                    <td class="text-center">@Model.Note1</td>
+                </tr>
+                <tr>
+                    <td class="text-center">2</td>
+                    <td>Kiểm tra niêm phong override</td>
+                    <td class="text-center">@Model.Result2</td>
+                    <td class="text-center">@Model.Note2</td>
+                </tr>
+                <tr>
+                    <td class="text-center">3</td>
+                    <td>Kiểm tra kẹp, dây, cuộn dây tiếp mát bên hông</td>
+                    <td class="text-center">@Model.Result3</td>
+                    <td class="text-center">@Model.Note3</td>
+                </tr>
+                <tr>
+                    <td class="text-center">4</td>
+                    <td>Kiểm tra ống mềm hông xe, vòng đai bảo vệ ống, đầu coupler, khớp quay coupler, khớp nối, nắp chắn bụi</td>
+                    <td class="text-center">@Model.Result4</td>
+                    <td class="text-center">@Model.Note4</td>
+                </tr>
+                <tr>
+                    <td class="text-center">5</td>
+                    <td>Thực hiện xả đáy xi téc</td>
+                    <td class="text-center">@Model.Result5</td>
+                    <td class="text-center">@Model.Note5</td>
+                </tr>
+                <tr>
+                    <td class="text-center">6</td>
+                    <td>Thực hiện xả đáy lọc</td>
+                    <td class="text-center">@Model.Result6</td>
+                    <td class="text-center">@Model.Note6</td>
+                </tr>
+                <tr>
+                    <td class="text-center">7</td>
+                    <td>Kiểm tra bề ngoài xe</td>
+                    <td class="text-center">@Model.Result7</td>
+                    <td class="text-center">@Model.Note7</td>
+                </tr>
+                <tr>
+                    <td class="text-center">8</td>
+                    <td>Kiểm tra tình trạng lốp</td>
+                    <td class="text-center">@Model.Result8</td>
+                    <td class="text-center">@Model.Note8</td>
+                </tr>
+                <tr>
+                    <td class="text-center">9</td>
+                    <td>Kiểm tra cò nạp trên cánh</td>
+                    <td class="text-center">@Model.Result9</td>
+                    <td class="text-center">@Model.Note9</td>
+                </tr>
+                <tr>
+                    <td class="text-center">10</td>
+                    <td>Kiểm tra họng nhập đáy</td>
+                    <td class="text-center">@Model.Result10</td>
+                    <td class="text-center">@Model.Note10</td>
+                </tr>
+                <tr>
+                    <td class="text-center">11</td>
+                    <td>Kiểm tra bình cứu hỏa</td>
+                    <td class="text-center">@Model.Result11</td>
+                    <td class="text-center">@Model.Note11</td>
+                </tr>
+                <tr>
+                    <td class="text-center">12</td>
+                    <td>Kiểm tra mức dầu động cơ</td>
+                    <td class="text-center">@Model.Result12</td>
+                    <td class="text-center">@Model.Note12</td>
+                </tr>
+
+                <tr>
+                    <td class="text-center">13</td>
+                    <td>Xả nước lọc nhiên liệu</td>
+                    <td class="text-center">@Model.Result13</td>
+                    <td class="text-center">@Model.Note13</td>
+                </tr>
+                <tr>
+                    <td class="text-center">14</td>
+                    <td>Kiểm tra nước làm mát</td>
+                    <td class="text-center">@Model.Result14</td>
+                    <td class="text-center">@Model.Note14</td>
+                </tr>
+                <tr>
+                    <td class="text-center">15</td>
+                    <td>Kiểm tra mức dầu hộp số</td>
+                    <td class="text-center">@Model.Result15</td>
+                    <td class="text-center">@Model.Note15</td>
+                </tr>
+                <tr>
+                    <td class="text-center">16</td>
+                    <td>Kiểm tra mức dầu hệ thống lái</td>
+                    <td class="text-center">@Model.Result16</td>
+                    <td class="text-center">@Model.Note16</td>
+                </tr>
+                <tr>
+                    <td class="text-center">17</td>
+                    <td>Kiểm tra hoạt động, rò chảy qua khớp quay, ống mềm trên giàn nâng và đầu coupler</td>
+                    <td class="text-center">@Model.Result17</td>
+                    <td class="text-center">@Model.Note17</td>
+                </tr>
+                <tr>
+                    <td class="text-center">18</td>
+                    <td>Kiểm tra tình trạng bình acquy, đầu cực acquy</td>
+                    <td class="text-center">@Model.Result18</td>
+                    <td class="text-center">@Model.Note18</td>
+                </tr>
+                <tr>
+                    <td class="text-center">19</td>
+                    <td>Kiểm tra trạng thái và mức dầu thủy lực</td>
+                    <td class="text-center">@Model.Result19</td>
+                    <td class="text-center">@Model.Note19</td>
+                </tr>
+                <tr>
+                    <td class="text-center">20</td>
+                    <td>Xả nước ở bình tích khí</td>
+                    <td class="text-center">@Model.Result20</td>
+                    <td class="text-center">@Model.Note20</td>
+                </tr>
+                <tr>
+                    <td class="text-center">21</td>
+                    <td>Vệ sinh bình lấy mẫu</td>
+                    <td class="text-center">@Model.Result21</td>
+                    <td class="text-center">@Model.Note21</td>
+                </tr>
+                <tr>
+                    <td class="text-center">22</td>
+                    <td>Kiểm tra chăn thấm dầu</td>
+                    <td class="text-center">@Model.Result22</td>
+                    <td class="text-center">@Model.Note22</td>
+                </tr>
+                <tr>
+                    <td class="text-center">23</td>
+                    <td>Kiểm tra dụng cụ hóa nghiệm, thang gấp</td>
+                    <td class="text-center">@Model.Result23</td>
+                    <td class="text-center">@Model.Note23</td>
+                </tr>
+                <tr>
+                    <td class="text-center">24</td>
+                    <td>Vệ sinh cabin và ngoài xe</td>
+                    <td class="text-center">@Model.Result24</td>
+                    <td class="text-center">@Model.Note24</td>
+                </tr>
+                <tr>
+                    <td colspan="4">
+                        <span class="bold">Thực hiện nổ máy và bơm quẩn</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-center">25</td>
+                    <td>Kiểm tra động cơ </td>
+                    <td class="text-center">@Model.Result25</td>
+                    <td class="text-center">@Model.Note25</td>
+                </tr>
+                <tr>
+                    <td class="text-center">26</td>
+                    <td>Kiểm tra tình trạng dây deadman, hoạt động của deadman</td>
+                    <td class="text-center">@Model.Result26</td>
+                    <td class="text-center">@Model.Note26</td>
+                </tr>
+                <tr>
+                    <td class="text-center">27</td>
+                    <td>Kiểm tra hệ thống lái</td>
+                    <td class="text-center">@Model.Result27</td>
+                    <td class="text-center">@Model.Note27</td>
+                </tr>
+                <tr>
+                    <td class="text-center">28</td>
+                    <td>Kiểm tra hoạt động của giản nâng (công tắc chống va chạm, khóa ngắt khẩn cấp)</td>
+                    <td class="text-center">@Model.Result28</td>
+                    <td class="text-center">@Model.Note28</td>
+                </tr>
+                <tr>
+                    <td class="text-center">29</td>
+                    <td>Kiểm tra tầm nhìn của gương, còi xe, gạt mưa</td>
+                    <td class="text-center">@Model.Result29</td>
+                    <td class="text-center">@Model.Note29</td>
+                </tr>
+                <tr>
+                    <td class="text-center">30</td>
+                    <td>Kiểm tra đèn tín hiệu, chiếu sáng, phanh và đèn xoay </td>
+                    <td class="text-center">@Model.Result30</td>
+                    <td class="text-center">@Model.Note30</td>
+                </tr>
+                <tr>
+                    <td class="text-center">31</td>
+                    <td>Kiểm tra hệ thống phanh.Kiểm tra hệ thống phanh</td>
+                    <td class="text-center">@Model.Result31</td>
+                    <td class="text-center">@Model.Note31</td>
+                </tr>
+                <tr>
+                    <td class="text-center">32</td>
+                    <td>Kiểm tra ít nhất một vị trí interlock trên xe</td>
+                    <td class="text-center">@Model.Result32</td>
+                    <td class="text-center">@Model.Note32</td>
+                </tr>
+                <tr>
+                    <td class="text-center">33</td>
+                    <td>Kiểm tra hoạt động của các đồng hồ áp suất trên bảng điều khiển bên hông xe</td>
+                    <td class="text-center">@Model.Result33</td>
+                    <td class="text-center">@Model.Note33</td>
+                </tr>
+                <tr>
+                    <td class="text-center">34</td>
+                    <td>Kiểm tra chênh áp bầu lọc và ghi lại thông tin</td>
+                    <td class="text-center">@Model.Result34</td>
+                    <td class="text-center">@Model.Note34</td>
+                </tr>
+                <tr>
+                    <td class="text-center">35</td>
+                    <td>Kiểm tra lưu lượng kế</td>
+                    <td class="text-center">@Model.Result35</td>
+                    <td class="text-center">@Model.Note35</td>
+                </tr>
+                <tr>
+                    <td class="text-center">36</td>
+                    <td>Kiểm tra hoạt động của bơm, dừng bơm khẩn cấp</td>
+                    <td class="text-center">@Model.Result36</td>
+                    <td class="text-center">@Model.Note36</td>
+                </tr>
+                <tr>
+                    <td colspan="4">
+                        Chú thích: <span class="bold">KQ</span> <span class="italic">(Kết quả kiểm tra)</span>; &nbsp;&nbsp;<span class="bold">S: </span> <span>Đạt</span> <span class="italic">(Satisfactory)</span>
+                        ; &nbsp;&nbsp;<span class="bold">R: </span> <span>Yêu cầu sửa chữa</span> <span class="italic">(Requires repair)</span>
+                        ; &nbsp;&nbsp;<span class="bold">A: </span> <span>Bổ sung</span> <span class="italic">(Add)</span>
+                        ; &nbsp;&nbsp;<span class="bold">NA: </span> <span>Không áp dụng</span>
+                        ; &nbsp;&nbsp;<span class="bold">GC: </span> <span>Khi giao ca chỉ thực hiện các mục</span> <span class="bold">GC</span><br />
+                        <span>Khi hoàn thành sửa chữa cần khoanh tròn chữ</span> <span class="bold">R</span>
+                        <br />
+                        <span class="bold">Khi "có hỏng hóc" phải báo ngay cho cán bộ quản lý xe để thực hiện sửa chữa kịp thời.</span>
+                    </td>
+
+                </tr>
+                @*<tr>
+                        <td colspan="4">
+                            Nhận xét và yêu cầu: <br /><br />
+                            <span class="line-write"></span>
+                            <span class="line-write"></span>
+                        </td>
+
+                    </tr>*@
+            </tbody>
+        </table>
+    </div>
+    @if (viewOnly)
+    {
+        <p>
+            @Html.ActionLink("Quay về danh sách", "Index")
+        </p>
+    }
+    else
+    {
+        <p>
+            @Html.ActionLink("Sửa", "Edit", new { id = Model.Id }) |
+            @Html.ActionLink("Quay về danh sách", "Index")
+        </p>
+    }
+</div>
+

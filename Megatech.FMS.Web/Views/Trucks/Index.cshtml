@@ -1,0 +1,266 @@
+﻿@model IEnumerable<FMS.Data.Truck>
+
+@{
+
+    ViewBag.Title = "Xe tra nạp";
+
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Quản lý xe tra nạp" }
+    );
+
+    var select_val = 0;
+    if (Request["a"] != null)
+    {
+        int.TryParse(Request["a"], out select_val);
+    }
+
+    var selectList = new SelectList((List<Airport>)ViewBag.Airports, "Id", "Name", select_val);
+    var num = new System.Globalization.NumberFormatInfo();
+    num.NumberDecimalSeparator = ",";
+    num.NumberGroupSeparator = ".";
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+    var changeLogs = (List<ChangeLog>)ViewBag.ChangeLogs;
+}
+
+<div class="box">
+    @Html.Partial("_ChangeLog", changeLogs)
+    <div class="box-header">
+        <a href="#" id="assign" class="assign btn btn-default hidden pull-left"><i class="fa fa-user"></i> Phân công</a>
+        @if (!viewOnly)
+        {
+            <a class="btn btn-primary pull-right" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+        }
+
+        <div class="col-md-6 pull-right">
+            @Html.DropDownList("airport", selectList, "Tất cả sân bay", new { @class = "form-control select2", onchange = "change" })
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered">
+            <tr>
+                <th></th>
+                <th>
+                    Số xe
+                </th>
+                <th>
+                    Thiết bị Tablet
+                </th>
+                <th>
+                    Thiết bị LCR
+                </th>
+                <th class="text-right">
+                    Dung tích bồn
+                </th>
+                <th class="text-center">
+                    Đơn vị
+                </th>
+                @*<th class="text-right">
+                        Lượng nhiêu liệu hiện tại
+                    </th>
+                    <th class="text-center">
+                        Đơn vị
+                    </th>*@
+                <th>Sân bay</th>
+                <th>Thao tác</th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr class="parent">
+                    <td class="check">
+                        <label class="checkbox fix">@Html.CheckBox("chkSelect", false, new { value = item.Id, @class = "is-check" })<i></i></label>
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Code)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.TabletId)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Device.SerialNumber)
+                    </td>
+                    <td class="text-right">
+                        @*@item.MaxAmount.ToString("#,##0.00", num)*@
+                        @Math.Round(item.MaxAmount).ToString("#,##0")
+                    </td>
+                    <td class="text-center">
+                        @item.Unit
+                    </td>
+                    @*<td class="text-right">
+                            @item.CurrentAmount.ToString("#,##0.00", num)
+                        </td>
+                        <td class="text-center">
+                            @item.Unit
+                        </td>*@
+                    <td>
+                        @Html.DisplayFor(modelItem => item.CurrentAirport.Name)
+                    </td>
+                    <td>
+                        @if (!viewOnly)
+                        {
+                            <a href="@Url.Action("Edit", new { id = item.Id})">
+                                Sửa |
+                            </a>
+                            <a onclick="jdelete(@item.Id)" class="pointer">
+                                Xóa
+                            </a>
+                        }
+                    </td>
+                </tr>
+            }
+        </table>
+    </div>
+    <div class="box-footer">
+        @Html.Partial("Pager", (PagingViewModel)ViewBag.PageModel)
+    </div>
+</div>
+<div class="modal fade" id="modal-assign">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Phân công</h4>
+            </div>
+            @using (Ajax.BeginForm("Assign", new AjaxOptions { OnSuccess = "closemodal" }))
+            {
+                @Html.AntiForgeryToken()
+
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Chọn sân bay</label>
+                        @Html.DropDownList("AirportId", selectList, htmlAttributes: new { @class = "form-control select2" })
+                        <input type="hidden" id="id" name="id" value="0" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                </div>
+            }
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+
+@*<div class="modal fade" id="modal-create">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Thêm xe tra nạp</h4>
+                </div>
+
+                @using (Ajax.BeginForm("Create", new AjaxOptions { OnSuccess = "closemodal" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="col-sm-4">Sân bay</label>
+                            @Html.DropDownList("AirportId", selectList, htmlAttributes: new { @class = "form-control select2" })
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-4">Số xe</label>
+                            <input name="Code" />
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-4">Dung tích bồn</label>
+                            <input name="MaxAmount" class="mask" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                }
+
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>*@
+
+@section Scripts {
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+    <script>
+        $(document).ready(function () {
+            //$("#create").click(function () {
+            //    $('#modal-create').modal('show');
+            //    return false;
+            //});
+            //$(".mask").inputmask("decimal");
+
+            $('.checkbox input[type=checkbox]').change(function () {
+                if ($('.checkbox input:checked').length >= 1) {
+                    $(".assign").removeClass("hidden");
+                }
+                else {
+                    $(".assign").addClass("hidden");
+                }
+            })
+
+            $(".assign").click(function () {
+                var json = [];
+                $('#modal-assign').modal('show');
+
+                $(".checkbox input[type='checkbox']").each(
+                    function () {
+                        if (this.checked) {
+                            json.push($(this).val());
+                        }
+                    });
+                $('#modal-assign').find("#id").val(json);
+
+                return false;
+            });
+        });
+
+        function closemodal(data) {
+            if (data.result == "OK") {
+                $('#modal-create').modal('hide');
+                location.reload();
+            }
+        }
+
+        $(function () {
+            $(".box-header .select2").select2();
+            $('.box-header .select2').on('.box-header select2:select', function (e) {
+                var data = e.params.data;
+                change(data);
+            });
+        })
+
+        function change(data)
+        {
+            var val = data.id;
+            window.location = "@Url.Action("index")" + "?a=" + val;
+        }
+
+        function jdelete(id) {
+            if (confirm("Bạn chắc chắn muốn xóa xe tra nạp này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDelete")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            window.location.reload();
+                        }
+                    },
+                });
+            }
+            return false;
+        }
+    </script>
+}

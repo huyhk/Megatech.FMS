@@ -1,0 +1,217 @@
+﻿@model FMS.Data.Flight
+
+@{
+    Layout = "~/Views/Shared/_LayoutPopUp.cshtml";
+    ViewBag.Title = "Sửa kế hoạch bay";
+}
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <h2>@ViewBag.Title</h2>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        @Html.HiddenFor(model => model.Id)
+        @Html.HiddenFor(model => model.Status)
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input id="btn_save" type="submit" value="Lưu" class="btn btn-primary" onclick="changeDate()" />
+                @*@Html.ActionLink("Quay về danh sách", "Index")*@
+                @*<a href="@Request["returnUrl"]">Quay về danh sách</a>*@
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Số hiệu", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.AircraftCode, new { htmlAttributes = new { @class = "form-control" } })
+                @*@Html.ValidationMessageFor(model => model.AircraftCode, "", new { @class = "text-danger" })*@
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Số chuyến", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Code, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.Code, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Charter", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownList("AirlineId", null, "-- Charter --", htmlAttributes: new { @class = "form-control select2" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Chuyên chở", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <select class="form-control select2" id="FlightCarry" name="FlightCarry">
+                    <option value="0" @(Model.FlightCarry == FlightCarry.PAX ? "selected" : "")>PAX</option>
+                    <option value="1" @(Model.FlightCarry == FlightCarry.CCO ? "selected" : "")>CCO</option>
+                    <option value="2" @(Model.FlightCarry == FlightCarry.CGO ? "selected" : "")>CGO</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Bãi đỗ", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @*@Html.DropDownList("ParkingLotId", null, htmlAttributes: new { @class = "form-control select2" })*@
+                @Html.EditorFor(model => model.Parking, new { htmlAttributes = new { @class = "form-control" } })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Đường bay", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.RouteName, new { htmlAttributes = new { @class = "form-control" } })
+                @*@Html.ValidationMessageFor(model => model.RouteName, "", new { @class = "text-danger" })*@
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Loại tàu bay", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.AircraftType, new { htmlAttributes = new { @class = "form-control" } })
+                @*@Html.ValidationMessageFor(model => model.AircraftType, "", new { @class = "text-danger" })*@
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Ngày nạp dầu", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <div class="input-group">
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                    <input type="text" id="RefuelScheduledTime" class="form-control pull-right datepicker" readonly value="@Model.RefuelScheduledTime.Value.ToString("dd/MM/yyyy")">
+                    @Html.HiddenFor(model => model.RefuelScheduledTime)
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Sản lượng dự kiến", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.EstimateAmount, new { htmlAttributes = new { @class = "form-control", @Value = Math.Round(Model.EstimateAmount) } })
+                @Html.ValidationMessageFor(model => model.EstimateAmount, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Giờ hạ cánh dự kiến", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.ArrivalScheduledTime, new { htmlAttributes = new { @class = "form-control timepicker", @Value = (Model.ArrivalScheduledTime != null && Model.ArrivalScheduledTime.Value.Year != DateTime.MaxValue.Year) ? Model.ArrivalScheduledTime.Value.ToString("hh:mm tt") : "" } })
+                @*@Html.ValidationMessageFor(model => model.ArrivalScheduledTime, "", new { @class = "text-danger" })*@
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Giờ cất cánh dự kiến", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.DepartureScheduledTime, new { htmlAttributes = new { @readonly = "readonly", @class = "form-control timepicker", @Value = Model.DepartureScheduledTime != null ? Model.DepartureScheduledTime.Value.ToString("hh:mm tt") : "" } })
+                @*@Html.ValidationMessageFor(model => model.DepartureScheduledTime, "", new { @class = "text-danger" })*@
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Giờ nạp dầu", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.RefuelScheduledHours, new { htmlAttributes = new { @readonly = "readonly", @class = "form-control timepicker", @Value = Model.RefuelScheduledTime != null ? Model.RefuelScheduledTime.Value.ToString("hh:mm tt") : "" } })
+                @*@Html.ValidationMessageFor(model => model.RefuelScheduledHours, "", new { @class = "text-danger" })*@
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.Label("Ghi chú", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.TextAreaFor(model => model.Note, new { @class = "form-control" })
+                @*@Html.ValidationMessageFor(model => model.Note, "", new { @class = "text-danger" })*@
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input id="btn_save" type="submit" value="Lưu" class="btn btn-primary" onclick="changeDate()" />
+                @*@Html.ActionLink("Quay về danh sách", "Index")*@
+                @*<a href="@Request["returnUrl"]">Quay về danh sách</a>*@
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @*@Scripts.Render("~/bundles/jqueryval")*@
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+
+
+    <script>
+        //$('#btn_save').click(function () {
+
+        //    var regex = /^(\d*\.?\d*)$/;
+        //    var air = $('#Code');
+        //    var estimateAmount = $('#EstimateAmount');
+        //    var departureScheduledTime = $('#DepartureScheduledTime');
+        //    var refuelScheduledHours = $('#RefuelScheduledHours');
+        //    if (air.val() == "") {
+        //        alert("Vui lòng nhập số chuyến");
+        //        air.focus();
+        //        return false;
+        //    }
+        //    else if (estimateAmount.val() == "") {
+        //        alert("Vui lòng nhập sản lượng dự kiến");
+        //        estimateAmount.focus();
+        //        return false;
+        //    }
+        //    else if (refuelScheduledHours.val() == "") {
+        //        alert("Vui lòng nhập giờ nạp dầu");
+        //        refuelScheduledHours.focus();
+        //        return false;
+        //    }
+        //    else if (departureScheduledTime.val() == "") {
+        //        alert("Vui lòng nhập giờ cất cánh dự kiến");
+        //        departureScheduledTime.focus();
+        //        return false;
+        //    }
+        //    else if (!regex.test(estimateAmount.val()) || estimateAmount.val() == "") {
+        //        alert("Sản lượng dự kiến phải là kiểu số");
+        //        estimateAmount.val(0);
+        //        return false;
+        //    }
+        //    else {
+        //        $(".datepicker").each(function () {
+        //            var val = $(this).val();
+        //            var pattern = /(\d{2})\/(\d{2})\/(\d{4})/;
+        //            $(this).siblings("input[type=hidden]").val(val.replace(pattern, "$3/$2/$1"));
+        //        });
+        //        return true;
+        //    }
+
+        //});
+
+
+        $(function () {
+            $(".select2").select2();
+
+            $(".datepicker").datepicker({
+                format: "dd/mm/yyyy",
+                autoclose: true,
+            });
+
+            $('.timepicker').timepicker({
+                defaultTime: '',
+                showInputs: false,
+                showMeridian: false,
+                minuteStep: 1
+            })
+
+        })
+
+        function changeDate() {
+
+            $(".datepicker").each(function () {
+                val = $(this).val();
+                var pattern = /(\d{2})\/(\d{2})\/(\d{4})/;
+                $(this).siblings("input[type=hidden]").val(val.replace(pattern, "$3/$2/$1"));
+            });
+            return true;
+
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+
+}
+

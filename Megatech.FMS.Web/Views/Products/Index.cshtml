@@ -1,0 +1,128 @@
+﻿
+@model IEnumerable<FMS.Data.Product>
+
+@{
+    ViewBag.Title = "Sản phẩm";
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+    var changeLogs = (List<ChangeLog>)ViewBag.ChangeLogs;
+}
+
+
+<div class="box">
+    @Html.Partial("_ChangeLog", changeLogs)
+    <div class="box-header">
+        @if (!viewOnly)
+        {
+            <a class="btn btn-primary pull-right" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+        }
+    </div>
+    <div class="box-body">
+        <table class="table">
+            <tr>
+                <th>
+                    Mã sản phẩm
+                </th>
+                <th>
+                    Tên sản phẩm
+                </th>
+
+                <th>Thao tác</th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Code)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Name)
+                    </td>
+
+                    <td>
+                        @if (!viewOnly)
+                        {
+                            <a href="@Url.Action("Edit", new { id = item.Id})">
+                                Sửa |
+                            </a>
+                            <a onclick="jdelete(@item.Id)" class="pointer">
+                                Xóa
+                            </a>
+                        }
+                    </td>
+                </tr>
+            }
+
+        </table>
+    </div>
+    <div class="box-footer"></div>
+</div>
+<div class="modal fade" id="modal-create">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Thêm sản phẩm</h4>
+            </div>
+
+            @using (Ajax.BeginForm("Create", new AjaxOptions { OnSuccess = "closemodal" }))
+            {
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Mã sản phẩm</label>
+                        <input name="Code" />
+                    </div>
+                    <div class="form-group">
+                        <label>Tên sản phẩm</label>
+                        <input name="Name" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                </div>
+            }
+
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+
+@section Scripts {
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script>
+        //$(document).ready(function () {
+        //    $("#create").click(function () {
+
+        //        $('#modal-create').modal('show');
+        //        return false;
+        //    });
+        //});
+        function closemodal(data) {
+            if (data.result == "OK") {
+                $('#modal-create').modal('hide');
+                location.reload();
+
+            }
+        }
+        function jdelete(id) {
+            if (confirm("Bạn chắc chắn muốn xóa sản phẩm này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDelete")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            window.location.reload();
+                        }
+                    },
+                });
+            }
+            return false;
+        }
+    </script>
+}

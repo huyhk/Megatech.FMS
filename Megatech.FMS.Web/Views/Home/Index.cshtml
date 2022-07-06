@@ -1,0 +1,230 @@
+﻿
+@{
+    ViewBag.Title = "";
+    BreadcrumbModel.CurrentBreadcrumb.Clear();
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+}
+<ul class="main-menu">
+    <li class="items">
+        <h3 class="heading">
+            <span>Danh mục</span>
+        </h3>
+        <ul class="ctn">
+            @if (User.IsInRole("Aministrators") || User.IsInRole("Super Admin") || viewOnly)
+            {
+                <li>
+                    <a href="@Url.Action("Index","Airports")">
+                        <i class="fa fa-flag"></i>
+                        <span>Sân bay</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("Index","Airlines")">
+                        <i class="fa fa-address-card"></i>
+                        <span>Hãng bay</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("Index","Aircrafts")">
+                        <i class="fa fa-plane"></i>
+                        <span>Tàu bay</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("Index","Trucks")">
+                        <i class="fa fa-truck"></i>
+                        <span>Xe tra nạp</span>
+                    </a>
+                </li>
+                <li><a href="@Url.Action("Personnel","Users", new { r = "26d38c84-4e32-4ecb-bf50-186862bdad39" })"><i class="fa fa-user"></i> <span>Quản lý chi nhánh</span> </a></li>
+                <li><a href="@Url.Action("Personnel","Users", new { r = "0u864990-a892-4uy1-89a8-b08df89ui9c2" })"><i class="fa fa-user"></i><span>Quản lý miền</span></a></li>
+                <li><a href="@Url.Action("Personnel","Users", new { r = "0ub64990-anh2-4a31-89a8-b08df89c89c2" })"><i class="fa fa-user"></i><span>Quản lý tổng công ty</span></a></li>
+                <li><a href="@Url.Action("Personnel","Users", new { r = "a7661639-6d36-4b29-a8e3-0f425afcd955" })"><i class="fa fa-user"></i><span>Lái xe</span></a></li>
+                <li><a href="@Url.Action("Personnel","Users", new { r = "32008037-b18f-422c-897d-2328c968285b" })"><i class="fa fa-user"></i><span>NV tra nạp</span></a></li>
+                <li>
+                    <a href="@Url.Action("Index","ParkingLots")">
+                        <i class="fa fa-align-center"></i>
+                        <span>Bãi đỗ</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("Index","Products")">
+                        <i class="fa fa-product-hunt"></i>
+                        <span>Sản phẩm</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("Index","ProductPrices")">
+                        <i class="fa fa-dollar"></i>
+                        <span>Giá nguyên liệu</span>
+                    </a>
+                </li>
+            }
+            else
+            {
+                <li>
+                    <a href="@Url.Action("Index","Trucks")">
+                        <i class="fa fa-truck"></i>
+                        <span>Xe tra nạp</span>
+                    </a>
+                </li>
+                <li><a href="@Url.Action("Personnel","Users", new { r = "a7661639-6d36-4b29-a8e3-0f425afcd955" })"><i class="fa fa-user"></i><span>Lái xe</span></a></li>
+                <li><a href="@Url.Action("Personnel","Users", new { r = "32008037-b18f-422c-897d-2328c968285b" })"><i class="fa fa-user"></i><span>NV tra nạp</span></a></li>
+                <li>
+                    <a href="@Url.Action("Index","ParkingLots")">
+                        <i class="fa fa-align-center"></i>
+                        <span>Bãi đỗ</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </li>
+
+    <li class="items">
+        <h3 class="heading">
+            <span>Kế hoạch tra nạp</span>
+        </h3>
+        <ul class="ctn">
+            @*<li>
+            <a href="@Url.Action("Index","Flights")">
+                <i class="fa fa-paper-plane"></i>
+                <span>Kế hoạch bay</span>
+            </a>
+        </li>*@
+            <li>
+                <a href="@Url.Action("Index","Flights")">
+                    <i class="fa fa-paper-plane"></i>
+                    <span>Kế hoạch tra nạp</span>
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Index","Shifts")">
+                    <i class="fa fa-clock-o"></i>
+                    <span>Quản lý ca</span>
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Index","TruckAssigns")">
+                    <i class="fa fa-truck"></i>
+                    <span>Phân công xe</span>
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Extract","Flights")">
+                    <i class="fa fa-paper-plane"></i>
+                    <span>Hút nhiên liệu</span>
+                </a>
+            </li>
+            @*<li>
+            <a href="@Url.Action("RefuelHistory","Flights")">
+                <i class="fa fa-history"></i>
+                <span>Lịch sử tra nạp</span>
+            </a>
+        </li>*@
+        </ul>
+    </li>
+
+    @*<li class="items">
+            <h3 class="heading">
+                <span>Nhân sự</span>
+            </h3>
+            <ul class="ctn">
+                @if (User.IsInRole("Aministrators") || User.IsInRole("Super Admin") || User.IsInRole("Quản lý tổng công ty"))
+                {
+                    <li><a href="@Url.Action("Personnel","Users", new { r = "26d38c84-4e32-4ecb-bf50-186862bdad39" })"><i class="fa fa-user"></i> <span>Quản lý chi nhánh</span> </a></li>
+                    <li><a href="@Url.Action("Personnel","Users", new { r = "0u864990-a892-4uy1-89a8-b08df89ui9c2" })"><i class="fa fa-user"></i><span>Quản lý miền</span></a></li>
+                    <li><a href="@Url.Action("Personnel","Users", new { r = "0ub64990-anh2-4a31-89a8-b08df89c89c2" })"><i class="fa fa-user"></i><span>Quản lý tổng công ty</span></a></li>
+                    <li><a href="@Url.Action("Personnel","Users", new { r = "a7661639-6d36-4b29-a8e3-0f425afcd955" })"><i class="fa fa-user"></i><span>Lái xe</span></a></li>
+                    <li><a href="@Url.Action("Personnel","Users", new { r = "32008037-b18f-422c-897d-2328c968285b" })"><i class="fa fa-user"></i><span>NV tra nạp</span></a></li>
+
+                }
+                else
+                {
+                    <li><a href="@Url.Action("Personnel","Users", new { r = "a7661639-6d36-4b29-a8e3-0f425afcd955" })"><i class="fa fa-user"></i><span>Lái xe</span></a></li>
+                    <li><a href="@Url.Action("Personnel","Users", new { r = "32008037-b18f-422c-897d-2328c968285b" })"><i class="fa fa-user"></i><span>NV tra nạp</span></a></li>
+                }
+            </ul>
+        </li>*@
+
+    <li class="items">
+        <h3 class="heading">
+            <span>Báo cáo</span>
+        </h3>
+        <ul class="ctn">
+            <li>
+                <a href="@Url.Action("RefuelHistory","Flights")">
+                    <i class="fa fa-history"></i>
+                    <span>Công tác tra nạp</span>
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Index","CheckTrucks")">
+                    <i class="fa fa-wrench"></i>
+                    <span>Phiếu bảo dưỡng hàng ngày</span>
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("AmountReport","Flights")">
+                    <i class="fa fa-history"></i>
+                    <span>Chuyến bay - Sản lượng</span>
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("TotalAmountReport","Flights")">
+                    <i class="fa fa-history"></i>
+                    <span>Tổng hợp Chuyến bay - Sản lượng</span>
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Index","ParkingReports")">
+                    <i class="fa fa-history"></i>
+                    <span>Khai thác - trên sân đỗ</span>
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Index","EntityLog")">
+                    <i class="fa fa-history"></i>
+                    <span>Lịch sử thay đổi</span>
+                </a>
+            </li>
+        </ul>
+    </li>
+    @if (User.IsInRole("Super Admin"))
+    {
+        <li class="items">
+            <h3 class="heading">
+                <span>Hệ thống</span>
+            </h3>
+            <ul class="ctn">
+                <li>
+                    <a href="@Url.Action("Index","Users")">
+                        <i class="fa fa-user"></i>
+                        <span>Người dùng</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("Index","Roles")">
+                        <i class="fa fa-users"></i>
+                        <span>Nhóm người dùng</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+    }
+    else if (User.IsInRole("Quản lý chi nhánh") || User.IsInRole("Aministrators"))
+    {
+        <li class="items">
+            <h3 class="heading">
+                <span>Hệ thống</span>
+            </h3>
+            <ul class="ctn">
+                <li>
+                    <a href="@Url.Action("Index","Users")">
+                        <i class="fa fa-user"></i>
+                        <span>Người dùng</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+    }
+</ul>

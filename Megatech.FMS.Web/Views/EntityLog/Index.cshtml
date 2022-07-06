@@ -1,0 +1,194 @@
+﻿<link rel="stylesheet" href="~/Content/datepicker/jquery.ui.datepicker.css" />
+@model IEnumerable<FMS.Data.ChangeLog>
+@{
+    ViewBag.Title = "Lịch sử thay đổi";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+        new BreadcrumbItem { Text = "Lịch sử thay đổi" }
+    );
+    var select_val = "";
+    if (Request["a"] != null)
+    {
+        select_val = Request["a"];
+    }
+    var startD = "moment()";
+    var endD = "moment()";
+    var daterange = "";
+    if (Request["daterange"] != null)
+    {
+        daterange = Request["daterange"];
+        var ranges = Request["daterange"].Split('-');
+        startD = "moment('" + ranges[0] + "','DD/MM/YYYY')";
+        endD = "moment('" + ranges[1] + "','DD/MM/YYYY')";
+    }
+    var date = DateTime.MinValue;
+    var index = 1;
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+}
+
+<div class="box">
+    <div class="box-header">
+        <div class="div-filter row">
+            <div class="col-md-6 pull-left row">
+                <form method="get">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Chọn ngày:</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-default pull-right" id="daterange">
+                                    <i class="fa fa-calendar"></i> <span>
+                                    </span>
+                                    <i class="fa fa-caret-down"></i>
+                                </button>
+                                <input type="hidden" name="daterange" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Chọn danh mục</label>
+                            <div class="input-group">
+                                <select class="txt select2" id="a" name="a" onchange="change">
+                                    <option value="">Tất cả</option>
+                                    <option value="flight" @(select_val.ToLower() == "flight" ? "selected" : "")>Chuyến bay</option>
+                                    <option value="airport" @(select_val.ToLower() == "airport" ? "selected" : "")>Sân bay</option>
+                                    <option value="airline" @(select_val.ToLower() == "airline" ? "selected" : "")>Hãng bay</option>
+                                    <option value="aircraft" @(select_val.ToLower() == "aircraft" ? "selected" : "")>Tàu bay</option>
+                                    <option value="truck" @(select_val.ToLower() == "truck" ? "selected" : "")>Xe tra nạp</option>
+                                    <option value="parkiglot" @(select_val.ToLower() == "parkinglot" ? "selected" : "")>Bãi đỗ</option>
+                                    <option value="product" @(select_val.ToLower() == "product" ? "selected" : "")>Sản phẩm</option>
+                                    <option value="productprice" @(select_val.ToLower() == "productprice" ? "selected" : "")>Giá nguyên liệu</option>
+                                    <option value="shift" @(select_val.ToLower() == "shift" ? "selected" : "")>Quản lý ca</option>
+                                    <option value="truckassign" @(select_val.ToLower() == "truckassign" ? "selected" : "")>Phân công xe</option>
+                                </select>
+                                <div class="input-group-btn">
+                                    <button type="submit" class="btn btn-info"><i class="fa fa-filter"></i> Lọc</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="box-body">
+        <div class="table-responsive">
+            <table class="table table-bordered text-nowrap" id="table">
+                <thead>
+                    <tr>
+                        <th>Stt</th>
+                        <th>
+                            Thông tin
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        if (item.DateChanged.Date != date)
+                        {
+                            date = item.DateChanged.Date;
+                            <tr class="info">
+                                <th colspan="2" scope="row">@date.ToString("dd/MM/yyyy")</th>
+                            </tr>
+                        }
+                        <tr class="parent">
+                            <td>@(index++)</td>
+                            <td>
+                                @item.EntityDisplay <span class="bold">@item.KeyValues: @item.UserUpdatedName</span> đã thay đổi <span class="bold">@item.PropertyName</span> từ <span class="bold">@item.OldValues</span> thành <span class="bold">@item.NewValues</span> vào lúc <span class="bold">@item.DateChanged.ToString("HH:mm dd/MM/yyyy")</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="box-footer">
+        @Html.Pager(new PagerOptions { ItemCount = ViewBag.ItemCount, VisibleItemCount = 7, PageSize = 20 }, null)
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script src="~/admin-lte2.4/plugins/DataTables/datatables.min.js"></script>
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+    <script src="https://momentjs.com/downloads/moment.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script>
+        $(function () {
+
+            var start = @Html.Raw(startD);
+            var end = @Html.Raw(endD);
+
+            function cb(start, end) {
+                $('#daterange span').html(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
+                $('input[name=daterange]').val(start.format('DD/MM/YYYY') + '-' + end.format('DD/MM/YYYY'));
+            }
+
+            $('#daterange').daterangepicker({
+                "locale": {
+                    "format": "DD/MM/YYYY",
+                    "separator": " - ",
+                    "applyLabel": "Chọn",
+                    "cancelLabel": "Đóng",
+                    "fromLabel": "Từ",
+                    "toLabel": "Đến",
+                    "customRangeLabel": "Tùy chọn",
+                    "weekLabel": "W",
+                    "daysOfWeek": [
+                        "Su",
+                        "Mo",
+                        "Tu",
+                        "We",
+                        "Th",
+                        "Fr",
+                        "Sa"
+                    ],
+                    "monthNames": [
+                        "Tháng 1",
+                        "Tháng 2",
+                        "Tháng 3",
+                        "Tháng 4",
+                        "Tháng 5",
+                        "Tháng 6",
+                        "Tháng 7",
+                        "Tháng 8",
+                        "Tháng 9",
+                        "Tháng 10",
+                        "Tháng 11",
+                        "Tháng 12"
+                    ],
+                    "firstDay": 1
+                },
+                startDate: start,
+                endDate: end,
+                ranges: {
+                    'Hôm nay': [moment(), moment()],
+                    'Hôm qua': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    '7 ngày gần đây': [moment().subtract(6, 'days'), moment()],
+                    '30 ngày gần đây': [moment().subtract(29, 'days'), moment()],
+                    'Tháng này': [moment().startOf('month'), moment().endOf('month')],
+                    'Tháng trước': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                },
+                alwaysShowCalendars: true
+
+            }, cb);
+
+            cb(start, end);
+
+            $('#rf_date').daterangepicker({
+                singleDatePicker: true,
+                showDropdowns: true,
+                locale:{ "format": "DD/MM/YYYY"}
+            }, function(start, end, label) {});
+        });
+    </script>
+}

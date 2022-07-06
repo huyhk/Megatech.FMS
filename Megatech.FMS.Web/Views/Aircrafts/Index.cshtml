@@ -1,0 +1,121 @@
+﻿
+@model IEnumerable<FMS.Data.Aircraft>
+
+@{
+    ViewBag.Title = "Tàu bay";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Tàu bay" }
+    );
+
+    var select_val = "";
+    if (Request["a"] != null)
+    {
+        select_val = Request["a"];
+    }
+    var customer = (List<Airline>)ViewBag.Customer;
+    var selectList = new SelectList(customer, "Id", "Name", select_val);
+    var onlyView = User.IsInRole("Quản lý tổng công ty");
+    var changeLogs = (List<ChangeLog>)ViewBag.ChangeLogs;
+}
+
+<div class="box">
+    @Html.Partial("_ChangeLog", changeLogs)
+    <div class="box-header">
+        @if (!onlyView)
+        {
+            <a class="btn btn-primary pull-right" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+        }
+
+        <div class="col-md-6 pull-right">
+            @Html.DropDownList("customer", selectList, "Chọn hãng bay", new { @class = "form-control select2", onchange = "change" })
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered">
+            <tr>
+                <th>
+                    Hãng bay
+                </th>
+
+                <th>
+                    Số hiệu
+                </th>
+                <th>
+                    Loại tàu bay
+                </th>
+
+                <th>Thao tác</th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Customer.Name)
+                    </td>
+
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Code)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.AircraftType)
+                    </td>
+                    <td>
+                        @if (!onlyView)
+                        {
+                            <a href="@Url.Action("Edit", new { id = item.Id})">
+                                Sửa |
+                            </a>
+                            <a onclick="jdelete(@item.Id)" class="pointer">
+                                Xóa
+                            </a>
+                        }
+                    </td>
+                </tr>
+            }
+        </table>
+    </div>
+    <div class="box-footer">
+        @Html.Partial("Pager", (PagingViewModel)ViewBag.PageModel)
+    </div>
+</div>
+
+
+@section Scripts {
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script>
+        $(function () {
+            $(".select2").select2();
+            $('.select2').on('select2:select', function (e) {
+                var data = e.params.data;
+                change(data);
+            });
+        })
+
+        function change(data)
+        {
+            var val = data.id;
+            window.location = "@Url.Action("index")" + "?a=" + val;
+        }
+
+          function jdelete(id) {
+            if (confirm("Bạn chắc chắn muốn xóa tàu bay này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDelete")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            window.location.reload();
+                        }
+                    },
+                });
+            }
+            return false;
+        }
+    </script>
+}

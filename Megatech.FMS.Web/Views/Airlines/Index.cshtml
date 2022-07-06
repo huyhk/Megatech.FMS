@@ -1,0 +1,110 @@
+﻿
+@model IEnumerable<FMS.Data.Airline>
+
+@{
+    ViewBag.Title = "Hãng bay";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Hãng bay" }
+    );
+    var onlyView = User.IsInRole("Quản lý tổng công ty");
+    var changeLogs = (List<ChangeLog>)ViewBag.ChangeLogs;
+}
+
+<div class="box">
+    @Html.Partial("_ChangeLog", changeLogs)
+    <div class="box-header">
+        @if (!onlyView)
+        {
+            <a class="btn btn-primary pull-right" href="@Url.Action("Create")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+        }
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered">
+            <tr>
+                <th>
+                    Mã hãng bay
+                </th>
+                <th>
+                    Tên hãng bay
+                </th>
+                <th>
+                    Mã số thuế
+                </th>
+                <th>
+                    Địa chỉ
+                </th>
+                <th>
+                    Tên hóa đơn
+                </th>
+                <th>
+                    Mã số thuế hóa đơn
+                </th>
+                <th>
+                    Địa chỉ hóa đơn
+                </th>
+                <th>
+                    Thao tác
+                </th>
+            </tr>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Code)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Name)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.TaxCode)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Address)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.InvoiceName)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.InvoiceTaxCode)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.InvoiceAddress)
+                    </td>
+                    <td>
+                        @if (!onlyView)
+                        {
+                            <a href="@Url.Action("Edit", new { id = item.Id})">
+                                Sửa |
+                            </a>
+                            <a onclick="jdelete(@item.Id)" class="pointer">
+                                Xóa
+                            </a>
+                        }
+                    </td>
+                </tr>
+            }
+        </table>
+    </div>
+</div>
+<script>
+    function jdelete(id) {
+            if (confirm("Bạn chắc chắn muốn xóa hãng bay này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDelete")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            window.location.reload();
+                        }
+                    },
+                });
+            }
+            return false;
+        }
+</script>

@@ -1,0 +1,289 @@
+﻿@model IList<FMS.Data.Flight>
+
+@{
+    ViewBag.Title = "Kế hoạch bay";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Kế hoạch bay" }
+    );
+    var trucks = (List<Truck>)ViewBag.Trucks;
+    int index = 1;
+}
+
+<div class="box before-import">
+    <div class="box-body">
+        <div class="form-group">
+            <a href="@Url.Action("Index")" class="btn btn-default">Trở về</a>
+            <input type="submit" value="Lưu" class="btn btn-primary hidden" />
+            <img src="~/admin-lte2.4/img/wait.gif" class="hidden" id="img_wait" style="height: 30px" />
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered text-nowrap" id="table">
+                <thead>
+                    <tr>
+                        <th>
+                            <label class="checkbox fix">@Html.CheckBox("chkSelectAll", false, new { id = "check_All" })<i></i></label>
+                        </th>
+                        <th>
+                            TT
+                        </th>
+                        <th>
+                            Loại tàu bay
+                        </th>
+                        <th>
+                            Số hiệu tàu bay
+                        </th>
+                        <th>
+                            Số hiệu chuyến bay
+                        </th>
+
+                        <th>
+                            Đường bay
+                        </th>
+                        <th>
+                            Sản lượng dự kiến kg
+                        </th>
+                        <th>
+                            Giờ hạ cánh dự kiến
+                        </th>
+
+                        <th>
+                            Giờ cất cánh dự kiến
+                        </th>
+                        <th>
+                            Giờ tra nạp dự kiến
+                        </th>
+                        <th>
+                            Bãi đỗ
+                        </th>
+                        <th>
+                            Loại chuyến bay
+                        </th>
+                        <th>
+                            Xe tra nạp
+                        </th>
+                        <th>
+                            Lái xe
+                        </th>
+                        <th>
+                            Nhân viên kỹ thuật
+                        </th>
+                        <th>
+                            Ghi chú
+                        </th>
+                        @*<th>
+                                Ca trực
+                            </th>
+                            <th>
+                                Thời gian bắt đầu
+                            </th>
+                            <th>
+                                Thời gian kết thúc
+                            </th>
+                            <th>
+                                Sân bay
+                            </th>*@
+                    </tr>
+                </thead>
+                <tbody class="items">
+                    @foreach (var item in Model)
+                    {
+                        <tr class="item">
+                            <td class="check">
+                                <label class="checkbox fix">@Html.CheckBox("chkSelect", false, new { value = item.Id, @class = "is-check" })<i></i></label>
+                            </td>
+                            <td>
+                                @index
+                            </td>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.AircraftType)
+                                @Html.HiddenFor(modelItem => item.AircraftType, new { @class = "aircraftType" })
+                            </td>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.AircraftCode)
+                                @Html.HiddenFor(modelItem => item.AircraftCode, new { @class = "aircraftCode" })
+                            </td>
+
+                            <td>
+                                @Html.DisplayFor(modelItem => item.Code)
+                                @Html.HiddenFor(modelItem => item.Code, new { @class = "code" })
+                            </td>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.RouteName)
+                                @Html.HiddenFor(modelItem => item.RouteName, new { @class = "routeName" })
+                            </td>
+                            <td class="text-right">
+                                @*@Html.DisplayFor(modelItem => item.EstimateAmount, new { @Value = Math.Round(item.EstimateAmount).ToString("#,##0") })*@
+                                <span>@Math.Round(item.EstimateAmount).ToString("#,##0")</span>
+                                @Html.HiddenFor(modelItem => item.EstimateAmount, new { @class = "estimateAmount" })
+                            </td>
+                            <td>
+                                @*@Html.DisplayFor(modelItem => item.ArrivalScheduledTime)*@
+                                @(item.ArrivalScheduledTime != null ? item.ArrivalScheduledTime.Value.ToString("dd/MM/yyyy HH:mm") : "")
+                                @Html.HiddenFor(modelItem => item.ArrivalScheduledTime, new { @class = "arrivalScheduledTime" })
+                            </td>
+                            <td>
+                                @*@Html.DisplayFor(modelItem => item.DepartureScheduledTime)*@
+                                @(item.DepartureScheduledTime != null ? item.DepartureScheduledTime.Value.ToString("dd/MM/yyyy HH:mm") : "")
+                                @Html.HiddenFor(modelItem => item.DepartureScheduledTime, new { @class = "departureScheduledTime" })
+                            </td>
+                            <td>
+                                @*@Html.DisplayFor(modelItem => item.RefuelScheduledTime)*@
+                                @(item.RefuelScheduledTime != null ? item.RefuelScheduledTime.Value.ToString("dd/MM/yyyy HH:mm") : "")
+                                @Html.HiddenFor(modelItem => item.RefuelScheduledTime, new { @class = "refuelScheduledTime" })
+                            </td>
+                            <td class="text-center">
+                                @Html.DisplayFor(modelItem => item.Parking)
+                                @Html.HiddenFor(modelItem => item.Parking, new { @class = "parking" })
+                            </td>
+                            <td class="text-center">
+                                @*@Html.DisplayFor(modelItem => item.FlightCarry)*@
+                                <select class="flightCarry form-control select2" id="FlightCarry" name="FlightCarry">
+                                    <option value="0" @(item.FlightCarry == FlightCarry.PAX ? "selected" : "")>PAX</option>
+                                    <option value="1" @(item.FlightCarry == FlightCarry.CCO ? "selected" : "")>CCO</option>
+                                    <option value="2" @(item.FlightCarry == FlightCarry.CGO ? "selected" : "")>CGO</option>
+                                </select>
+                                @*@Html.HiddenFor(modelItem => item.FlightCarry, new { @class = "flightCarry" })
+                                                            <label>@FlightCarry.PAX</label>
+                                    <input type="hidden" id="FlightCarry" name="FlightCarry" value="@FlightCarry.PAX" />*@
+                            </td>
+
+                            <td>
+                                @Html.DisplayFor(modelItem => item.TruckName)
+                                @Html.HiddenFor(modelItem => item.TruckName, new { @class = "truckName" })
+                            </td>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.DriverName)
+                                @Html.HiddenFor(modelItem => item.DriverName, new { @class = "driverName" })
+                            </td>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.TechnicalerName)
+                                @Html.HiddenFor(modelItem => item.TechnicalerName, new { @class = "technicalerName" })
+                            </td>
+                            <td class="text-center">
+                                @Html.DisplayFor(modelItem => item.Note)
+                                @Html.HiddenFor(modelItem => item.Note, new { @class = "note" })
+                            </td>
+                            @*<td>
+                                    @Html.DisplayFor(modelItem => item.Shift)
+                                    @Html.HiddenFor(modelItem => item.Shift, new { @class = "shift" })
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.ShiftStartTime)
+                                    @Html.HiddenFor(modelItem => item.ShiftStartTime, new { @class = "shiftStartTime" })
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.ShiftEndTime)
+                                    @Html.HiddenFor(modelItem => item.ShiftEndTime, new { @class = "shiftEndTime" })
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.AirportName)
+                                    @Html.HiddenFor(modelItem => item.AirportName, new { @class = "airportName" })
+                                </td>*@
+                        </tr>
+                        index++;
+                    }
+                </tbody>
+            </table>
+        </div>
+        <br />
+        <div class="form-group">
+            <a href="@Url.Action("Index")" class="btn btn-default">Trở về</a>
+            <input type="submit" value="Lưu" class="btn btn-primary hidden" />
+        </div>
+    </div>
+
+</div>
+
+
+@section Scripts
+{
+    <script src="~/admin-lte2.4/plugins/DataTables/datatables.min.js"></script>
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+    <script>
+        $(document).ready(function () {
+
+            $('.before-import input[type=checkbox]').change(function () {
+                if ($('.before-import input:checked').length >= 1) {
+                    $(".btn-primary").removeClass("hidden");
+                }
+                else {
+                    $(".btn-primary").addClass("hidden");
+                }
+            })
+        });
+
+        $('#check_All').click(function () {
+            $('.items input:checkbox').prop('checked', this.checked);
+        });
+
+        $(".btn-primary").click(function () {
+            $("#img_wait").removeClass("hidden");
+                    var json = [];
+             $(".item input[type='checkbox']:checked").each(
+                        function () {
+
+                            var aircraftType = $(this).parentsUntil(".items").find(".aircraftType").val();
+                            var aircraftCode = $(this).parentsUntil(".items").find(".aircraftCode").val();
+                            var code = $(this).parentsUntil(".items").find(".code").val();
+                            var routeName = $(this).parentsUntil(".items").find(".routeName").val();
+                            var estimateAmount = $(this).parentsUntil(".items").find(".estimateAmount").val();
+                            var arrivalScheduledTime = $(this).parentsUntil(".items").find(".arrivalScheduledTime").val();
+                            var departureScheduledTime = $(this).parentsUntil(".items").find(".departureScheduledTime").val();
+                            var refuelScheduledTime = $(this).parentsUntil(".items").find(".refuelScheduledTime").val();
+                            var parking = $(this).parentsUntil(".items").find(".parking").val();
+                            //var flightCarry = $(this).parentsUntil(".items").find(".flightCarry").val();
+                            var flightCarry = $(this).parentsUntil(".items").find(".flightCarry option:selected").text();
+                            var note = $(this).parentsUntil(".items").find(".note").val();
+                            var truckName = $(this).parentsUntil(".items").find(".truckName").val();
+                            var driverName = $(this).parentsUntil(".items").find(".driverName").val();
+                            var technicalerName = $(this).parentsUntil(".items").find(".technicalerName").val();
+                            //var shift = $(this).parentsUntil(".items").find(".shift").val();
+                            //var shiftStartTime = $(this).parentsUntil(".items").find(".shiftStartTime").val();
+                            //var shiftEndTime = $(this).parentsUntil(".items").find(".shiftEndTime").val();
+                            //var airportName = $(this).parentsUntil(".items").find(".airportName").val();
+
+                            json.push({
+                                "aircraftType": aircraftType,
+                                "aircraftCode": aircraftCode,
+                                "code": code,
+                                "routeName": routeName,
+                                "estimateAmount": estimateAmount,
+                                "arrivalScheduledTime": arrivalScheduledTime,
+                                "departureScheduledTime": departureScheduledTime,
+                                "refuelScheduledTime": refuelScheduledTime,
+                                "parking": parking,
+                                "flightCarry": flightCarry,
+                                "note": note,
+                                "truckName": truckName,
+                                "driverName": driverName,
+                                "technicalerName": technicalerName,
+                                //"shift": shift,
+                                //"shiftStartTime": shiftStartTime,
+                                //"shiftEndTime": shiftEndTime,
+                                //"airportName": airportName
+                            });
+                        });
+                    if (json.length > 0) {
+
+                        $.ajax({
+                            url: '@Url.Action("Import")',
+                            type: 'POST',
+                            success: function (data) {
+                                if (data.Status == 0) {
+                                    $("#img_wait").addClass("hidden");
+                                    alert(data.Message);
+                                    window.location.reload();
+                                }
+                            },
+                            data: "json=" + JSON.stringify(json)
+                        });
+                    }
+                });
+
+    </script>
+}

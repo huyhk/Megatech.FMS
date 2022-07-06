@@ -1,0 +1,258 @@
+﻿@model IEnumerable<FMS.Data.RefuelItem>
+@{
+    ViewBag.Title = "Hút nhiên liệu";
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+    var select_val_d = "";
+    if (Request["d"] != null)
+    {
+        select_val_d = Request["d"];
+    }
+    var driver = (List<User>)ViewBag.Driver;
+    var selectList_d = new SelectList(driver, "Id", "FullName", select_val_d);
+
+    var select_val_o = "";
+    if (Request["o"] != null)
+    {
+        select_val_o = Request["o"];
+    }
+    var oper = (List<User>)ViewBag.Operator;
+    var selectList_o = new SelectList(oper, "Id", "FullName", select_val_o);
+
+    var trucks = (List<Truck>)ViewBag.Trucks;
+    var selectList_truck = new SelectList(trucks, "Id", "Code");
+}
+
+<div class="box">
+    <div class="box-header">
+        @if (!viewOnly)
+        {
+            <a class="btn btn-primary pull-right create-new" href="@Url.Action("CreateExtract")" id="create"><i class="fa fa-plus"></i> Tạo mới</a>
+        }
+
+        <div class="div-filter row">
+            <div class="col-md-10 pull-left">
+                <form method="get">
+
+                    <div class="form-group pull-left">
+                        <label>Chọn lái xe:</label>
+                        <div class="input-group">
+                            @Html.DropDownList("d", selectList_d, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+                        </div>
+                    </div>
+                    <div class="form-group pull-left">
+                        <label>Chọn NV thực hiện:</label>
+                        <div class="input-group">
+                            @Html.DropDownList("o", selectList_o, "Tất cả", new { @class = "form-control select2", onchange = "change" })
+                            <div class="input-group-btn">
+                                <button type="submit" class="btn btn-info"><i class="fa fa-filter"></i> Lọc</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12">
+        @if (Model.Count() > 0)
+        {
+            <table class="table table-bordered">
+                <tr>
+                    <th class="text-center">Xe</th>
+                    <th>
+                        Lái xe<br />
+                        NV thực hiện
+                    </th>
+                    <th>Thời gian bắt đầu</th>
+                    <th>Thời gian kết thúc</th>
+                    <th>Số lượng Gallon</th>
+                    <th>Lít thực tế</th>
+                    <th>Số lượng Kg</th>
+                    <th>Nhiệt độ</th>
+                    <th>Tỷ trọng</th>
+                    <th class="text-center">Phiếu hóa nghiệm</th>
+
+                    <th class="text-center">Thao tác</th>
+                </tr>
+                @foreach (var ritem in Model)
+                {
+                    <tr class="item-refuel-@ritem.Id">
+                        <td>
+                            @(ritem.Truck != null ? ritem.Truck.Code : "")
+                        </td>
+                        <td>
+                            <span class="ctn">@(ritem.Driver != null ? ritem.Driver.FullName : "")</span><br />
+                            <span class="ctn">@(ritem.Operator != null ? ritem.Operator.FullName : "")</span>
+                        </td>
+                        <td>
+                            <span class="ctn">@ritem.StartTime.ToString("dd/MM/yyyy HH:mm")</span>
+                        </td>
+                        <td>
+                            <span class="ctn">@(ritem.EndTime != null ? ritem.EndTime.Value.ToString("dd/MM/yyyy HH:mm") : "")</span>
+                        </td>
+                        <td class="text-right">
+                            <span class="ctn">
+                                @Math.Round(ritem.Amount).ToString("#,##0")
+                                @*#,##0.00*@
+                            </span>
+                        </td>
+                        <td class="text-right">
+                            <span class="ctn">@Math.Round(ritem.Volume).ToString("#,##0")</span>
+                        </td>
+                        <td class="text-right">
+                            <span class="ctn">@Math.Round(ritem.Weight).ToString("#,##0")</span>
+                        </td>
+                        <td class="text-right">
+                            <span class="ctn">@ritem.ManualTemperature.ToString("#,##0.00")</span>
+                        </td>
+                        <td class="text-right">
+                            <span class="ctn">@ritem.Density.ToString("#,##0.0000")</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="ctn">@ritem.QCNo</span>
+                        </td>
+
+                        <td class="text-center">
+                            @if (!viewOnly)
+                            {
+                                <a href="@Url.Action("EditExtract", new { id = ritem.Id,returnUrl = Request.Url.PathAndQuery })">Sửa</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </table>
+        }
+    </div>
+</div>
+<div class="modal fade" id="modal-create">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Thêm mới hút nhiên liệu</h4>
+            </div>
+            @using (Ajax.BeginForm("CreateExtractAjax", "Flights", new AjaxOptions { OnSuccess = "closemodal", HttpMethod = "Post" }, new { autocomplete = "off" }))
+            {
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Xe :</label>
+                        <div class="input-group">
+                            @Html.DropDownList("TruckId", selectList_truck, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Lái xe :</label>
+                        <div class="input-group">
+                            @Html.DropDownList("DriverId", selectList_d, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>NV thực hiện :</label>
+                        <div class="input-group">
+                            @Html.DropDownList("OperatorId", selectList_o, htmlAttributes: new { @class = "form-control select2", style = "width:100%; float:none" })
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Thời gian bắt đầu :</label>
+                        <div class="input-group">
+                            <input class="form-control timepicker text-box single-line" id="StartTime" name="StartTime" type="datetime">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Thời gian kết thúc :</label>
+                        <div class="input-group">
+                            <input class="form-control timepicker text-box single-line" id="EndTime" name="EndTime" type="datetime">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Số lượng Gallon :</label>
+                        <div class="input-group">
+                            <input class="form-control text-box single-line" id="Amount" name="Amount" type="text">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nhiệt độ :</label>
+                        <div class="input-group">
+                            <input class="form-control text-box single-line" id="ManualTemperature" name="ManualTemperature" type="text">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Tỷ trọng :</label>
+                        <div class="input-group">
+                            <input class="form-control text-box single-line" id="Density" name="Density" type="text">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Phiếu hóa nghiệm :</label>
+                        <div class="input-group">
+                            <input class="form-control text-box single-line" id="QCNo" name="QCNo" type="text">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary" onclick="changeDate()">Lưu</button>
+                </div>
+            }
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+@section Scripts {
+    <script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script>
+        function closemodal(data) {
+            if (data.result == "OK") {
+                $('#modal-create').modal('hide');
+                location.reload();
+            }
+            else
+                alert(data.message);
+        }
+
+        $(function () {
+            $(".select2").select2();
+            $('.timepicker').timepicker({
+                showInputs: false,
+                showMeridian: false
+            });
+            $(".datepicker").datepicker({ format: "dd/mm/yyyy", autoclose: true });
+
+            $(".create-new").click(function () {
+                $('#modal-create').modal('show');
+                return false;
+            });
+        })
+
+        function change(data)
+        {
+            var val = data.id;
+            window.location = "@Url.Action("index")" + "?a=" + val;
+        }
+
+        function changeDate()
+        {
+            $(".datepicker").each(function () {
+                val = $(this).val();
+                var pattern = /(\d{2})\/(\d{2})\/(\d{4})/;
+                $(this).siblings("input[type=hidden]").val(val.replace(pattern, "$3/$2/$1"));
+            });
+            return true;
+        }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+}

@@ -1,0 +1,299 @@
+﻿@model IEnumerable<FMS.Data.RefuelItem>
+@using EntityFramework.DynamicFilters;
+
+@{
+    var t_ids = Model.Select(r => r.TruckId).ToArray();
+    var db = new DataContext();
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+    db.DisableFilter("IsNotDeleted");
+    var db_Trucks = db.Trucks.Where(t => t.IsDeleted && t_ids.Contains(t.Id)).ToList();
+    db.EnableFilter("IsNotDeleted");
+
+}
+@if (Model.Count() > 0)
+{
+    <h3 class="pull-left">Thông tin tra nạp</h3>
+    <table class="table table-bordered">
+        <tr>
+            <th class="text-center">Xe</th>
+            <th>
+                Lái xe<br />
+                NV tra nạp
+            </th>
+            <th>Thời gian <br /> bắt đầu</th>
+            <th>Thời gian <br /> kết thúc</th>
+            <th>Số lượng <br /> Gallon</th>
+            <th>Lít thực tế</th>
+            <th>Số lượng Kg</th>
+            <th>Hoàn trả Kg</th>
+            <th>Nhiệt độ</th>
+            <th>Tỷ trọng</th>
+            <th class="text-center">Số hóa đơn/<br />Số phiếu hút</th>
+            <th class="text-center">Phiếu <br /> hóa nghiệm</th>
+            <th class="text-center">Techlog(Kg)</th>
+            <th class="text-center">Loại tra nạp</th>
+            <th class="text-center">Cách tạo</th>
+            @*@if (!User.IsInRole("Điều hành") && !User.IsInRole("Tra nạp"))
+                {*@
+            @*<th class="text-center">Trạng thái tra nạp</th>*@
+            <th class="text-center">Thao tác</th>
+            @*}*@
+        </tr>
+
+        @foreach (var ritem in Model)
+        {
+            <tr class="item-refuel-@ritem.Id @(ritem.Status == REFUEL_ITEM_STATUS.PROCESSING ? "set-color-refueling":"")">
+                <td>
+                    @*@(ritem.Truck != null ? ritem.Truck.Code : "")*@
+                    @if (ritem.Truck != null)
+                    {
+                        @ritem.Truck.Code
+                    }
+                    else
+                    {
+                        var truck_d = db_Trucks.FirstOrDefault(t => t.Id == ritem.TruckId);
+                        if (truck_d != null)
+                        {
+                            <span>@truck_d.Code</span>
+                        }
+                    }
+                </td>
+                <td>
+                    <span class="ctn">@(ritem.Driver != null ? ritem.Driver.FullName : "")</span><br />
+                    <span class="ctn">@(ritem.Operator != null ? ritem.Operator.FullName : "")</span>
+                </td>
+                <td>
+                    @if ((ritem.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || ritem.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && ritem.Status == REFUEL_ITEM_STATUS.DONE)
+                    {
+                        <span class="ctn">@ritem.StartTime.ToString("dd/MM/yyyy HH:mm")</span>
+                    }
+                </td>
+                <td>
+                    @if ((ritem.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL || ritem.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT) && ritem.Status == REFUEL_ITEM_STATUS.DONE)
+                    {
+                        <span class="ctn">@(ritem.EndTime != null ? ritem.EndTime.Value.ToString("dd/MM/yyyy HH:mm") : "")</span>
+                    }
+                </td>
+                <td class="text-right">
+                    <span class="ctn">
+                        @*@Math.Round(ritem.Amount).ToString("#,##0")*@
+                        @Math.Round(ritem.Gallon).ToString("#,##0")
+                        @*#,##0.00*@
+                    </span>
+                </td>
+                <td class="text-right">
+                    <span class="ctn">@Math.Round(ritem.Volume).ToString("#,##0")</span>
+                </td>
+                <td class="text-right">
+                    <span class="ctn">@Math.Round(ritem.Weight).ToString("#,##0")</span>
+                </td>
+                <td class="text-right">
+                    @*@if (!User.IsInRole("Điều hành") && !User.IsInRole("Tra nạp") && !viewOnly)
+                        {*@
+                    @*<a class="lightbox" target="_blank" href="@Url.Action("EditReturnAmount", new { id = ritem.Id,returnUrl = Request.Url.PathAndQuery })">
+                            <span class="ctn" style="color:blue">@(ritem.ReturnAmount != null ? Math.Round((decimal)ritem.ReturnAmount).ToString("#,##0") : "0")</span>
+                        </a>*@
+                    @*}*@
+                    @if (Megatech.FMS.Web.AppContext.IsShowLink("JEditReturnAmount", "Flights"))
+                    {
+                        <a onclick="getbyRefuelId(@ritem.Id)" class="pointer">
+                            <span class="ctn" style="color:blue" id="ReturnAmount">@(ritem.ReturnAmount != null ? Math.Round((decimal)ritem.ReturnAmount).ToString("#,##0") : "0")</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="ctn">@(ritem.ReturnAmount != null ? Math.Round((decimal)ritem.ReturnAmount).ToString("#,##0") : "0")</span>
+                    }
+                </td>
+                <td class="text-right">
+                    <span class="ctn">@Math.Round(ritem.ManualTemperature, 2).ToString("#,##0.00")</span>
+                </td>
+                <td class="text-right">
+                    <span class="ctn">@Math.Round(ritem.Density, 4).ToString("#,##0.0000")</span>
+                </td>
+                <td class="text-center">
+                    <span class="ctn">@ritem.InvoiceNumber</span>
+                    @if (ritem.Exported != null && (bool)ritem.Exported)
+                    {
+                        <i class="fa fa-database" title="Đã truyền data cho PM QLHH"></i>
+                    }
+                </td>
+                <td class="text-center">
+                    <span class="ctn">@ritem.QCNo</span>
+                </td>
+                <td class="text-center">
+                    <span class="ctn">@(ritem.Techlog != null ? Convert.ToDecimal(ritem.Techlog).ToString("#,##0.00") : "")</span>
+                </td>
+                <td class="text-center">
+                    <span class="ctn">@(ritem.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL ? "Tra nạp" : ritem.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT ? "Hút" : "Test")</span>
+                </td>
+                <td class="text-center">
+                    <span class="ctn">
+                        @*@(ritem.CreateType == 1 ? "Bằng tay" : "Tự động")*@
+                        @(ritem.CreatedLocation == ITEM_CREATED_LOCATION.APP ? "Tự động" : "Từ web")
+                    </span>
+                </td>
+                @*@if (!User.IsInRole("Điều hành") && !User.IsInRole("Tra nạp"))
+                    {*@
+                @*<td>
+                        @if (ritem.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL)
+                        {
+                            <select class="form-control approve-status" id="ApproveStatus" name="ApproveStatus" disabled>
+                                <option value="NONE" @(ritem.ApprovalStatus == ITEM_APPROVE_STATUS.NONE ? "selected" : "")>Chờ duyệt</option>
+                                <option value="APPROVED" @(ritem.ApprovalStatus == ITEM_APPROVE_STATUS.APPROVED ? "selected" : "")>Đã duyệt</option>
+                                <option value="REJECTED" @(ritem.ApprovalStatus == ITEM_APPROVE_STATUS.REJECTED ? "selected" : "")>Từ chối</option>
+                            </select>
+                        }
+                    </td>*@
+                <td class="text-center">
+                    @*@if (!viewOnly && (ritem.Status != REFUEL_ITEM_STATUS.PROCESSING))
+                        {*@
+                    @*<a onclick="appback(@ritem.Id)" class="pointer btn-fback hidden">
+                            Quay về |
+                        </a>
+                        <a onclick="approve(@ritem.Id)" class="pointer btn-save hidden">
+                            Lưu |
+                        </a>
+                        if (ritem.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL)
+                        {
+                            <a onclick="showapp(@ritem.Id)" class="pointer btn-approve">Duyệt |</a>
+                        }*@
+                    @if (Megatech.FMS.Web.AppContext.IsShowLink("EditRefuelItem", "Flights") && ritem.RefuelItemType == REFUEL_ITEM_TYPE.REFUEL)
+                    {
+                        <a class="lightbox" target="_blank" href="@Url.Action("EditRefuelItem", new { id = ritem.Id,returnUrl = ViewBag.Url })">Sửa</a>
+                    }
+                    else if (Megatech.FMS.Web.AppContext.IsShowLink("EditExtract", "Flights") && ritem.RefuelItemType == REFUEL_ITEM_TYPE.EXTRACT)
+                    {
+                        <a class="lightbox" target="_blank" href="@Url.Action("EditExtract", new { id = ritem.Id,returnUrl = ViewBag.Url })">Sửa</a>
+                    }
+                    @if (Megatech.FMS.Web.AppContext.IsShowLink("JDeleteRefuelItem", "Flights"))
+                    {
+                        <a onclick="fdeleteRefuelItem(@ritem.Id,@ritem.FlightId)" class="pointer"> | Xóa</a>
+                    }
+                    @*}*@
+                </td>
+                @*}*@
+            </tr>
+        }
+    </table>
+}
+<div class="modal fade" id="modal-returnAmount">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title text-left">Cập nhật hoàn trả kg</h4>
+            </div>
+            <div class="modal-body text-left">
+                <input type="hidden" id="refuelItem_Id" name="refuelItem_Id" />
+                <input type="hidden" id="flight_Id" name="flight_Id" />
+                <div class="form-group">
+                    @Html.Label("Hoàn trả kg", htmlAttributes: new { @class = "control-label col-md-12" })
+                    <div class="col-md-12">
+                        <input type="text" class="form-control" id="ReturnAmount_Edit" name="ReturnAmount_Edit" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Đóng</button>
+                <button type="submit" class="btn btn-primary" onclick="UpdateReturnAmount()">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        var config = {
+            type: 'iframe',
+            //alignTop: true,
+            //overflowY: 'scroll',
+            callbacks: {}
+        };
+
+        var cssHeight = '300px';// Add some conditions here
+
+        config.callbacks.open = function () {
+            $(this.container).find('.mfp-content').css('height', cssHeight);
+        };
+
+        $('.lightbox2').magnificPopup(config);
+        $('.lightbox').magnificPopup({ type: 'iframe' });
+    });
+
+    function fdeleteRefuelItem(id,fid) {
+            var code = $('.item-flight-' + fid + ' #Code').html();
+        if (confirm("Bạn chắc chắn muốn xóa mẻ của chuyến bay " + code +" này?")) {
+                $.ajax({
+                    url: '@Url.Action("JDeleteRefuelItem")',
+                    type: 'POST',
+                    data: "id=" + id,
+                    success: function (data) {
+                        if (data.Status == 0) {
+                            alert("Đã xóa");
+                            window.location.reload();
+                        }
+                        else {
+                            alert("Không thể xóa mẻ của chuyến bay " + code +" này!");
+                        }
+                    },
+                });
+            }
+                return false;
+    }
+
+    function getbyRefuelId(id) {
+                $.ajax({
+                    url: '@Url.Action("GetByRefuelId")',
+                    type: 'GET',
+                    data: "id=" + id,
+                    contentType: "application/json;charset=UTF-8",
+                    dataType: "json",
+                    success: function (result) {
+                        $('#refuelItem_Id').val(result.Id);
+                        $('#flight_Id').val(result.FlightId);
+                        $('#ReturnAmount_Edit').val(result.ReturnAmount != null ? result.ReturnAmount : 0);
+                        $('#modal-returnAmount').modal('show');
+                    },
+                    error: function (errormessage) {
+                        alert(errormessage.responseText);
+                    }
+                });
+    }
+    function UpdateReturnAmount() {
+        var regex = /^(\d*\.?\d*)$/;
+        var returnAmount = $('#ReturnAmount_Edit');
+        if (!regex.test(returnAmount.val()) || returnAmount.val() == "") {
+            alert("Hoàn trả kg phải là kiểu số");
+            returnAmount.val(0);
+            return false;
+        }
+            changeDate();
+            var id = $('#refuelItem_Id').val();
+            var flight = {
+                Id: id,
+                FlightId: $('#flight_Id').val(),
+                ReturnAmount: returnAmount.val(),
+            };
+            $.ajax({
+                url: '@Url.Action("JEditReturnAmount")',
+                data: JSON.stringify(flight),
+                type: "POST",
+                contentType: "application/json;charset=utf-8",
+                dataType: "json",
+                success: function (result) {
+
+                    $('.item-refuel-' + id).css('background-color', '#f8efc0');
+                    $('.item-refuel-' + id + ' #ReturnAmount').html($('#ReturnAmount_Edit').val());
+
+                    $('#modal-returnAmount').modal('hide');
+                    //alert("Đã cập nhật");
+                },
+                error: function (errormessage) {
+                    alert(errormessage.responseText);
+                }
+            });
+        }
+</script>

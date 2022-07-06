@@ -1,0 +1,36 @@
+﻿@model FMS.Data.ParkingLot
+
+@{
+    ViewBag.Title = "Xóa";
+}
+<h3>Bạn chắc chắn muốn xóa bài viết này?</h3>
+<div>
+    <h4>Bãi đổ</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            <label>Số hiệu bãi đổ</label>
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Code)
+        </dd>
+        <dt>
+            <label>Tên bãi đổ</label>
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+
+    </dl>
+
+    @using (Html.BeginForm()) {
+        @Html.AntiForgeryToken()
+
+        <div class="form-actions no-color">
+            <input type="submit" value="Xóa" class="btn btn-default" /> |
+            @Html.ActionLink("Quay về danh sách", "Index")
+        </div>
+    }
+</div>

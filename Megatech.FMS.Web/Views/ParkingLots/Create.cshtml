@@ -1,0 +1,79 @@
+﻿@model FMS.Data.ParkingLot
+
+@{
+    ViewBag.Title = "Tạo mới bãi đỗ";
+    var bc = BreadcrumbModel.CurrentBreadcrumb;
+
+    bc.AddItems(
+        new BreadcrumbItem { Text = "Trang chủ", Url = Url.Action("Index", "Home"), IconClass = "fa-dashboard" },
+
+        new BreadcrumbItem { Text = "Bãi đỗ", Url= Url.Action("Index") },
+        new BreadcrumbItem { Text = "Tạo mới" }
+    );
+    var airports = (List<Airport>)ViewBag.Airports;
+    var selectList = new SelectList(airports, "Id", "Code");
+}
+
+
+<div class="box">
+    <div class="box-header">
+
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm())
+        {
+            @Html.AntiForgeryToken()
+
+            <div class="form-horizontal">
+
+                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                <div class="form-group">
+                    @Html.Label("Sân bay", htmlAttributes: new { @class = "control-label col-md-2" })
+                    <div class="col-md-10">
+                        @Html.DropDownList("AirportId", selectList, htmlAttributes: new { @class = "form-control select2" })
+                        @*@Html.ValidationMessageFor(model => model.AirportId, "", new { @class = "text-danger" })*@
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    @Html.Label("Bãi đỗ", htmlAttributes: new { @class = "control-label col-md-2" })
+                    <div class="col-md-10">
+                        @Html.EditorFor(model => model.Code, new { htmlAttributes = new { @class = "form-control" } })
+                        @*@Html.ValidationMessageFor(model => model.Code, "", new { @class = "text-danger" })*@
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    @Html.Label("Bến đỗ", htmlAttributes: new { @class = "control-label col-md-2" })
+                    <div class="col-md-10">
+                        @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control" } })
+                        @*@Html.ValidationMessageFor(model => model.Name, "", new { @class = "text-danger" })*@
+                    </div>
+                </div>
+
+
+                <div class="form-group">
+                    <div class="col-md-offset-2 col-md-10">
+                        <a href="@Url.Action("Index")" class="btn btn-default">Trở về</a>
+                        <input type="submit" value="Lưu" class="btn btn-primary" />
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+<script src="~/Content/select2/js/select2.full.min.js"></script>
+<script>
+        $(function () {
+            $(".select2").select2();
+        })
+        function change(data)
+        {
+            var val = (".select2").val();
+            window.location = "@Url.Action("index")" + "?aId=" + val;
+        }
+</script>
+}

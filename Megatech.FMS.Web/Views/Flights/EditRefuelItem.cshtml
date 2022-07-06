@@ -1,0 +1,362 @@
+﻿@model FMS.Data.RefuelItem
+
+@{
+    Layout = "~/Views/Shared/_LayoutPopUp.cshtml";
+    ViewBag.Title = "Sửa thông tin tra nạp";
+    var end_date = DateTime.Now;
+    var start_date = DateTime.Now;
+    if (Model.EndTime != null)
+    {
+        end_date = Model.EndTime.Value;
+    }
+    if (Model.StartTime != null)
+    {
+        start_date = Model.StartTime;
+    }
+}
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+<div class="form-horizontal">
+    <h2>@ViewBag.Title</h2>
+    <hr />
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+    @Html.HiddenFor(model => model.Id)
+    @Html.HiddenFor(model => model.FlightId)
+    @Html.HiddenFor(model => model.DeviceStartTime)
+    @Html.HiddenFor(model => model.DeviceEndTime)
+    @Html.HiddenFor(model => model.Status)
+    @Html.HiddenFor(model => model.Amount)
+    @Html.HiddenFor(model => model.Temperature)
+    @Html.HiddenFor(model => model.Completed)
+    @Html.HiddenFor(model => model.Printed)
+    <div class="form-group">
+        @Html.Label("Xe", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.DropDownList("TruckId", null, htmlAttributes: new { @class = "form-control select2" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Lái xe", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.DropDownList("DriverId", null, htmlAttributes: new { @class = "form-control select2" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("NV tra nạp", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.DropDownList("OperatorId", null, htmlAttributes: new { @class = "form-control select2" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Trực chỉ huy", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.DropDownList("UserId", null, "---", htmlAttributes: new { @class = "form-control select2" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Thời gian bắt đầu", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            <input type="text" id="StartTime_" class="form-control datetimepicker" value="@start_date.ToString("dd/MM/yyyy HH:mm")">
+            @Html.HiddenFor(model => model.StartTime)
+            @*@Html.EditorFor(model => model.StartTime, new { htmlAttributes = new { @class = "form-control timepicker", @readonly = "readonly", @Value = Model.StartTime != null ? Model.StartTime.ToString("hh:mm tt") : "" } })
+                @Html.ValidationMessageFor(model => model.StartTime, "", new { @class = "text-danger" })*@
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Thời gian kết thúc", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            <input type="text" id="EndTime_" class="form-control datetimepicker" value="@(end_date.ToString("dd/MM/yyyy HH:mm"))">
+            @Html.HiddenFor(model => model.EndTime)
+            @*@Html.EditorFor(model => model.EndTime, new { htmlAttributes = new { @class = "form-control timepicker", @readonly = "readonly", @Value = Model.EndTime != null ? Model.EndTime.Value.ToString("hh:mm tt") : "" } })
+                @Html.ValidationMessageFor(model => model.EndTime, "", new { @class = "text-danger" })*@
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Số lượng Gallon", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @*@Html.EditorFor(model => model.Amount, new { htmlAttributes = new { @class = "form-control", @Value = Math.Round(Model.Amount) } })
+                @Html.ValidationMessageFor(model => model.Amount, "", new { @class = "text-danger" })*@
+            @Html.EditorFor(model => model.Gallon, new { htmlAttributes = new { @class = "form-control", @Value = Math.Round(Model.Gallon) } })
+            @Html.ValidationMessageFor(model => model.Gallon, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Hoàn trả kg", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.ReturnAmount, new { htmlAttributes = new { @class = "form-control", @Value = Model.ReturnAmount != null ? Math.Round((decimal)Model.ReturnAmount) : 0 } })
+            @Html.ValidationMessageFor(model => model.ReturnAmount, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Số phiếu hoàn trả", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.ReturnInvoiceNumber, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(model => model.ReturnInvoiceNumber, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    @*<div class="form-group">
+            @Html.Label("Lít thực tế", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Volume, new { htmlAttributes = new { @class = "form-control", @Value = Math.Round(Model.Volume) } })
+                @Html.ValidationMessageFor(model => model.Volume, "", new { @class = "text-danger" })
+            </div>
+        </div>*@
+    @*<div class="form-group">
+            @Html.Label("Số lượng kg", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Weight, new { htmlAttributes = new { @class = "form-control", @Value = Math.Round(Model.Weight) } })
+                @Html.ValidationMessageFor(model => model.Weight, "", new { @class = "text-danger" })
+            </div>
+        </div>*@
+    <div class="form-group">
+        @Html.Label("Nhiệt độ", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.ManualTemperature, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(model => model.ManualTemperature, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Tỷ trọng", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.Density, new { htmlAttributes = new { @class = "form-control", @Value = Model.Density.ToString("#,##0.0000") } })
+            @Html.ValidationMessageFor(model => model.Density, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Phiếu hóa nghiệm", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.QCNo, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(model => model.QCNo, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Mẫu hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.DropDownList("InvoiceFormId", null, htmlAttributes: new { @class = "form-control select2" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Số hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.InvoiceNumber, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(model => model.InvoiceNumber, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Số đồng hồ đầu", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.StartNumber, new { htmlAttributes = new { @class = "form-control", @Value = Math.Round(Model.StartNumber) } })
+            @Html.ValidationMessageFor(model => model.StartNumber, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Số đồng hồ cuối", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.EndNumber, new { htmlAttributes = new { @Value = Math.Round(Model.EndNumber), @class = "form-control" } })
+            @Html.ValidationMessageFor(model => model.EndNumber, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Đơn giá", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.Price, new { htmlAttributes = new { @Value = Model.Currency == REFUEL_CURRENCY.VND ? Math.Round(Model.Price) : Model.Price, @class = "form-control" } })
+            @Html.ValidationMessageFor(model => model.Price, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Loại tiền tệ", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            <select class="form-control select2" id="Currency" name="Currency">
+                <option value="0" @(Model.Currency == REFUEL_CURRENCY.VND ? "selected" : "")>VND</option>
+                <option value="1" @(Model.Currency == REFUEL_CURRENCY.USD ? "selected" : "")>USD</option>
+            </select>
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("VAT%", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            <select class="form-control select2" id="TaxRate" name="TaxRate">
+                <option value="0" @(Model.TaxRate == 0 ? "selected" : "")>0%</option>
+                <option value="0.1" @(Model.TaxRate != 0 ? "selected" : "")>10%</option>
+            </select>
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.Label("Techlog", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            @Html.EditorFor(model => model.Techlog, new { htmlAttributes = new { @Value = Model.Techlog != null ? Model.Techlog : 0, @class = "form-control" } })
+            @Html.ValidationMessageFor(model => model.Techlog, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="col-md-offset-2 col-md-10">
+            <input id="btn_save" type="submit" value="Lưu" class="btn btn-primary" />
+        </div>
+    </div>
+</div>
+}
+@*<div>
+        @Html.ActionLink("Quay về danh sách", "Index")
+    </div>*@
+
+@section Scripts {
+    @*@Scripts.Render("~/bundles/jqueryval")
+        <script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>*@
+    <script src="~/Content/select2/js/select2.full.min.js"></script>
+    <script src="~/admin-lte2.4/plugins/timepicker/bootstrap-timepicker.js"></script>
+    <script type="text/javascript" src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment-with-locales.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.css" />
+
+
+    <script>
+        $(function () {
+            $(".select2").select2();
+            $('.datetimepicker').datetimepicker({
+                locale: 'vi'
+            })
+            //$('.timepicker').timepicker({
+            //    showInputs: false,
+            //    showMeridian: false,
+            //    minuteStep: 1
+            //})
+        })
+
+        $('#btn_save').click(function () {
+            changeDate();
+            var regex = /^(\d*\.?\d*)$/;
+            var regex_sp = /^\s+$/;
+            //var amount = $('#Amount');
+            //if (!regex.test(amount.val()) || amount.val() == "") {
+            //    alert("Số lượng Gallon phải là kiểu số");
+            //    amount.val(0);
+            //    return false;
+            //}
+
+            var startTime_ = $('#StartTime');
+            if (startTime_.val() == "") {
+                alert("Vui lòng nhập thời gian bắt đầu");
+                $('#StartTime_').focus();
+                return false;
+            }
+
+            var endTime_ = $('#EndTime');
+            if (endTime_.val() == "") {
+                alert("Vui lòng nhập thời gian kết thúc");
+                $('#EndTime_').focus();
+                return false;
+            }
+            
+            if (new Date(startTime_.val()) >= new Date(endTime_.val())) {
+                alert("Thời gian kết thúc phải lớn hơn thời gian bắt đầu");
+                return false;
+            }
+
+            var gallon = $('#Gallon');
+            if (!regex.test(gallon.val()) || gallon.val() == "") {
+                alert("Số lượng Gallon phải là kiểu số");
+                gallon.val(0);
+                return false;
+            }
+
+            var returnAmount = $('#ReturnAmount');
+            if (!regex.test(returnAmount.val()) || returnAmount.val() == "") {
+                alert("Hoàn trả kg phải là kiểu số");
+                returnAmount.val(0);
+                return false;
+            }
+            else if (parseInt(returnAmount.val()) > 0) {
+                var returnInvoiceNumber = $('#ReturnInvoiceNumber');
+                if (returnInvoiceNumber.val() == "") {
+                    alert("Vui lòng nhập số phiếu hoàn trả");
+                    returnInvoiceNumber.focus();
+                    return false;
+                }
+            }
+            //var volume = $('#Volume');
+            //if (!regex.test(volume.val()) || volume.val() == "") {
+            //    alert("Lít thực tế phải là kiểu số");
+            //    volume.val(0);
+            //    return false;
+            //}
+
+            //var weight = $('#Weight');
+            //if (!regex.test(weight.val()) || weight.val() == "") {
+            //    alert("Số lượng kg phải là kiểu số");
+            //    weight.val(0);
+            //    return false;
+            //}
+
+            var manualTemperature = $('#ManualTemperature');
+            if (!regex.test(manualTemperature.val()) || manualTemperature.val() == "") {
+                alert("Nhiệt độ phải là kiểu số");
+                manualTemperature.val(0);
+                return false;
+            }
+
+            var startNumber = $('#StartNumber');
+            if (!regex.test(startNumber.val()) || startNumber.val() == "") {
+                alert("Số đồng hồ đầu phải là kiểu số");
+                startNumber.val(0);
+                return false;
+            }
+
+            var endNumber = $('#EndNumber');
+            if (!regex.test(endNumber.val()) || endNumber.val() == "") {
+                alert("Số đồng hồ cuối phải là kiểu số");
+                endNumber.val(0);
+                return false;
+            }
+
+            var density = $('#Density');
+            if (!regex.test(density.val()) || density.val() == "") {
+                alert("Tỷ trọng phải là kiểu số");
+                density.val(0);
+                return false;
+            }
+
+            var price = $('#Price');
+            if (!regex.test(price.val()) || price.val() == "") {
+                alert("Đơn giá phải là kiểu số");
+                price.val(0);
+                return false;
+            }
+
+            var invoiceNumber = $('#InvoiceNumber');
+            if (invoiceNumber.val() == "" || regex_sp.test(invoiceNumber.val())) {
+                alert("Vui lòng nhập số hóa đơn");
+                invoiceNumber.focus();
+                return false;
+            }
+
+            var taxRate = $('#TaxRate');
+            if (!regex.test(taxRate.val()) || taxRate.val() == "") {
+                alert("VAT% phải là kiểu số");
+                taxRate.val(0);
+                return false;
+            }
+
+            var techlog = $('#Techlog');
+            if (!regex.test(techlog.val())) {
+                alert("Techlog phải là kiểu số");
+                techlog.val(0);
+                return false;
+            }
+        });
+
+        function changeDate() {
+            $(".datetimepicker").each(function () {
+                val = $(this).val();
+                var pattern = /(\d{2})\/(\d{2})\/(\d{4})/;
+
+                $(this).siblings("input[type=hidden]").val(val.replace(pattern, "$3/$2/$1"));
+
+            });
+            return true;
+        }
+    </script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+}
+

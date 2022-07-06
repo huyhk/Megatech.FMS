@@ -1,0 +1,236 @@
+﻿<link rel="stylesheet" href="~/Content/datepicker/jquery.ui.datepicker.css" />
+@model IEnumerable<FMS.Data.AmountReport>
+@{
+    ViewBag.Title = "Báo cáo chuyến bay - sản lượng";
+    
+    var select_val = "";
+    if (Request["a"] != null)
+    {
+        select_val = Request["a"];
+    }
+
+    var startD = "moment().hours(0).minutes(0)";
+    var endD = "moment().hours(23).minutes(59)";
+    var sD = DateTime.Now.ToString("dd/MM/yyyy 00:00");
+    var eD = DateTime.Now.ToString("dd/MM/yyyy 23:59");
+    var daterange = "";
+    if (Request["daterange"] != null)
+    {
+        daterange = Request["daterange"];
+        var ranges = Request["daterange"].Split('-');
+        startD = "moment('" + ranges[0] + "','DD/MM/YYYY H:mm')";
+        endD = "moment('" + ranges[1] + "','DD/MM/YYYY H:mm')";
+        sD = ranges[0].ToString();
+        eD = ranges[1].ToString();
+    }
+    var date = DateTime.MinValue;
+    var index = 1;
+    var viewOnly = User.IsInRole("Quản lý tổng công ty");
+}  
+
+<div class="box">
+    <div class="box-header">
+        <div class="div-filter row">
+            <div class="col-md-6 pull-left row">
+                <form method="get">
+                    @*@if (User.IsInRole("Administrators") || User.IsInRole("Super Admin"))
+                {*@
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Chọn thời gian:</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-default pull-right" id="daterange">
+                                    <i class="fa fa-calendar"></i> <span>
+                                    </span>
+                                    <i class="fa fa-caret-down"></i>
+                                </button>
+                                <div class="input-group-btn">
+                                    <button type="submit" class="btn btn-info"><i class="fa fa-filter"></i> Lọc/Thống kê</button>
+                                </div>
+                                <input type="hidden" name="daterange" />
+                            </div>
+                        </div>
+                    </div>
+                    @*}*@
+                </form>
+            </div>
+            @if (Model.Count() > 0)
+            {
+                <div class="col-md-6 pull-right">
+                    <a class="pull-right" href="@Url.Action("AmountReport", "ExportExcel", new { dr = Request["daterange"] })">
+                        <i class="fa fa-file-excel"></i>
+                        <span>Xuất ra Excel</span>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="box-body">
+        <div class="table-responsive">
+            <table class="table table-bordered text-nowrap" id="table">
+                <thead>
+                    <tr>
+                        <th class="text-center" rowspan="3">TT</th>
+                        <th class="text-center" rowspan="3">ĐƠN VỊ</th>
+                        <th colspan="6" class="text-center">
+                            Từ ngày @sD đến ngày @eD
+                        </th>
+                        <th class="text-center" rowspan="3">
+                            Ghi chú
+                        </th>
+                    </tr>
+                    <tr>
+                        <th colspan="3" class="text-center">
+                            CHUYẾN BAY
+                        </th>
+                        <th colspan="3" class="text-center">
+                            SẢN LƯỢNG
+                        </th>
+                    </tr>
+                    <tr>
+                        <th class="text-center">
+                            KH
+                        </th>
+                        <th class="text-center">
+                            TH
+                        </th>
+                        <th class="text-center">
+                            TH/KH
+                        </th>
+                        <th class="text-center">
+                            KH
+                        </th>
+                        <th class="text-center">
+                            TH
+                        </th>
+                        <th class="text-center">
+                            TH/KH
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="text-center">@(index++)</td>
+                            <td>@item.AirportName</td>
+                            <td class="text-center">@item.KH_Number</td>
+                            <td class="text-center">@item.TH_Number</td>
+                            <td class="text-center">@item.TH_Number/@item.KH_Number</td>
+                            <td class="text-right">@Math.Round(item.KH_Amount).ToString("#,##0")</td>
+                            <td class="text-right">@Math.Round(item.TH_Amount).ToString("#,##0")</td>
+                            <td class="text-right">@Math.Round(item.TH_Amount).ToString("#,##0")/@Math.Round(item.KH_Amount).ToString("#,##0")</td>
+                            <td></td>
+                        </tr>
+                    }
+                    @if (Model.Count() > 0)
+                    {
+                        var s_KH_Number = Model.Sum(f => f.KH_Number);
+                        var s_TH_Number = Model.Sum(f => f.TH_Number);
+                        var s_KH_Amount = Model.Sum(f => f.KH_Amount);
+                        var s_TH_Amount = Model.Sum(f => f.TH_Amount);
+                        <tr>
+                            <td class="text-center"></td>
+                            <td class="bold">Tổng</td>
+                            <td class="text-center bold">@s_KH_Number</td>
+                            <td class="text-center bold">@s_TH_Number</td>
+                            <td class="text-center bold">@s_TH_Number/@s_KH_Number</td>
+
+                            <td class="text-right bold">@Math.Round(s_KH_Amount).ToString("#,##0")</td>
+                            <td class="text-right bold">@Math.Round(s_TH_Amount).ToString("#,##0")</td>
+                            <td class="text-right bold">@Math.Round(s_TH_Amount).ToString("#,##0")/@Math.Round(s_KH_Amount).ToString("#,##0")</td>
+                            <td></td>
+                        </tr>
+                    }
+
+                </tbody>
+            </table>
+            <div id="bottom_anchor"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+
+    <script src="~/admin-lte2.4/plugins/DataTables/datatables.min.js"></script>
+    <script src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.js"></script>
+    <script src="~/admin-lte2.4/plugins/input-mask/jquery.inputmask.numeric.extensions.js"></script>
+    <script src="https://momentjs.com/downloads/moment.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script>
+        $(function () {
+
+            var start = @Html.Raw(startD);
+            var end = @Html.Raw(endD);
+
+            function cb(start, end) {
+                $('#daterange span').html(start.format('DD/MM/YYYY H:mm') + ' - ' + end.format('DD/MM/YYYY H:mm'));
+                $('input[name=daterange]').val(start.format('DD/MM/YYYY H:mm') + '-' + end.format('DD/MM/YYYY H:mm'));
+            }
+            
+            $('#daterange').daterangepicker({
+        
+                timePicker: true,
+                timePicker24Hour: true,
+                timePickerIncrement: 1,
+                "locale": {
+                    "format": "DD/MM/YYYY H:mm",
+                    "separator": " - ",
+                    "applyLabel": "Chọn",
+                    "cancelLabel": "Đóng",
+                    "fromLabel": "Từ",
+                    "toLabel": "Đến",
+                    "customRangeLabel": "Tùy chọn",
+                    "weekLabel": "W",
+                    "daysOfWeek": [
+                        "Su",
+                        "Mo",
+                        "Tu",
+                        "We",
+                        "Th",
+                        "Fr",
+                        "Sa"
+                    ],
+                    "monthNames": [
+                        "Tháng 1",
+                        "Tháng 2",
+                        "Tháng 3",
+                        "Tháng 4",
+                        "Tháng 5",
+                        "Tháng 6",
+                        "Tháng 7",
+                        "Tháng 8",
+                        "Tháng 9",
+                        "Tháng 10",
+                        "Tháng 11",
+                        "Tháng 12"
+                    ],
+                    "firstDay": 1
+                },
+                startDate: start,
+                endDate: end,
+                ranges: {
+                    'Hôm nay': [moment().hours(0).minutes(0), moment().hours(23).minutes(59)],
+                    'Ngày mai': [moment().subtract(-1, 'days').hours(0).minutes(0), moment().subtract(-1, 'days').hours(23).minutes(59)],
+                    'Hôm qua': [moment().subtract(1, 'days').hours(0).minutes(0), moment().subtract(1, 'days').hours(23).minutes(59)],
+                    '7 ngày gần đây': [moment().subtract(6, 'days').hours(0).minutes(0), moment().hours(23).minutes(59)],
+                    '30 ngày gần đây': [moment().subtract(29, 'days').hours(0).minutes(0), moment().hours(23).minutes(59)],
+                    'Tháng này': [moment().startOf('month').hours(0).minutes(0), moment().endOf('month').hours(23).minutes(59)],
+                    'Tháng trước': [moment().subtract(1, 'month').startOf('month').hours(0).minutes(0), moment().subtract(1, 'month').endOf('month').hours(23).minutes(59)]
+                },
+                alwaysShowCalendars: true
+
+            }, cb);
+
+            cb(start, end);
+
+           
+        });
+    </script>
+}
