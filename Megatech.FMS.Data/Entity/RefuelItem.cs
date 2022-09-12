@@ -254,6 +254,10 @@ namespace FMS.Data
 
 
         public int? ReceiptCount { get; set; }
+
+        public string ReceiptNumber { get; set; }
+
+        public Guid? ReceiptUniqueId { get; set; }
         public RETURN_UNIT? ReturnUnit { get; set; }
 
 

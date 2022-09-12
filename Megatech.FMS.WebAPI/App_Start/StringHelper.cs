@@ -3,7 +3,10 @@
     public static class StringHelper
     {
 
-
+        public static bool IsNullOrEmpty(this string str)
+        {
+            return string.IsNullOrEmpty(str);
+        }
         public static string CompoundToUnicode(this string str)
         {
 

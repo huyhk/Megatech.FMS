@@ -56,5 +56,29 @@ namespace Megatech.FMS.Logging
                 exp = exp.InnerException;
             }
         }
+
+        public static void WriteString(string log, string fileName)
+        {
+            if (logFolder == null)
+            {
+                logFolder = Directory.GetCurrentDirectory();
+            }
+            var filePath = Path.Combine(logFolder, fileName + ".log");
+            FileInfo fi = new FileInfo(filePath);
+            if (fi.Exists && fi.Length > 4 * 1024 * 1024)
+            {
+                var i = 1;
+
+                var archive = Path.Combine(logFolder, fileName + "-" + DateTime.Now.ToString("yyyyMMdd") + ".log");
+                while (File.Exists(archive))
+                {
+                    archive = Path.Combine(logFolder, fileName + "-" + DateTime.Now.ToString("yyyyMMdd") + "-" + i.ToString() + ".log");
+                    i++;
+                }
+                fi.MoveTo(archive);
+            }
+
+            File.AppendAllText(filePath, string.Format("{0}\n", log));
+        }
     }
 }

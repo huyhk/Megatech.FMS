@@ -430,5 +430,13 @@ namespace Megatech.FMS.WebAPI.Controllers
         {
             return db.Invoices.Count(e => e.Id == id) > 0;
         }
+
+        [HttpGet]
+        [Route("api/invoices/sendMail/{customerCode?}")]
+        public IHttpActionResult UpdateImage(string customerCode = null, DateTime? fdate = null, DateTime? tdate = null)
+        {
+            var ret = InvoiceExporter.SendEmail(customerCode, fdate, tdate);
+            return Ok(ret);
+        }
     }
 }

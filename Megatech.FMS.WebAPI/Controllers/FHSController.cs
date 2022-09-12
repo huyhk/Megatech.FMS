@@ -54,6 +54,7 @@ namespace Megatech.FMS.WebAPI.Controllers
         [Authorize]
         public IHttpActionResult Post()
         {
+
             try
             {
                 var data = HttpContext.Current.Request.Form["RefuelData"];
@@ -102,6 +103,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                         /// 
                         /// 
                         var dtImport = JsonConvert.DeserializeObject<FHSImport>(json);
+
                         if (model.Mode == DATA_MODE.INSERT)
                         {
                             Logger.AppendLog("MODEL", "model is duplicated " + model.UniqueId, "fhs");
@@ -125,6 +127,12 @@ namespace Megatech.FMS.WebAPI.Controllers
                         }
 
                         dtImport.DateImported = DateTime.Now;
+                        dtImport.UserImportedId = user.Id;
+                        dtImport.UserCreatedId = user.Id;
+                        dtImport.UserUpdatedId = user.Id;
+
+                        if (dtImport.RefuelCompany == null || dtImport.RefuelCompany == REFUEL_COMPANY.SKYPEC)
+                            dtImport.RefuelCompany = userName == "NAFSC" ? REFUEL_COMPANY.NAFSC : REFUEL_COMPANY.TAPETCO;
 
                         db.FHSImports.Add(dtImport);
                         db.SaveChanges();
@@ -132,7 +140,8 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                         model.AirportId = user.AirportId;
                         model.LocalUniqueId = dtImport.LocalUniqueId;
-
+                        if (model.RefuelCompany == null || model.RefuelCompany == REFUEL_COMPANY.SKYPEC)
+                            model.RefuelCompany = userName == "NAFSC" ? REFUEL_COMPANY.NAFSC : REFUEL_COMPANY.TAPETCO;
                         var result = InsertImportData(model, user, bytes);
 
 
@@ -145,7 +154,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                             result.Link = Request.GetRequestContext().Url.Request.RequestUri + "/" + result.ReturnId;
 
                         dtImport.ResultCode = result.Result;
-                        dtImport.Result = result.Message.ToString();
+                        dtImport.Result = result.Message?.ToString();
                         db.SaveChanges();
                         return Ok(result);
 
@@ -213,7 +222,10 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                         //};
                     }
-                    var flight = db.Flights.Include(f => f.RefuelItems).FirstOrDefault(f => f.Code.Equals(model.FlightCode, StringComparison.InvariantCultureIgnoreCase)
+                    var flight = db.Flights
+                        .Include(f => f.RefuelItems)
+                        //.Include(f=>f.Airline)
+                        .FirstOrDefault(f => f.Code.Equals(model.FlightCode, StringComparison.InvariantCultureIgnoreCase)
                           && f.RefuelScheduledTime == model.RefuelScheduledTime);
 
                     if (flight == null)
@@ -257,12 +269,13 @@ namespace Megatech.FMS.WebAPI.Controllers
                         CustomerAddress = airline.Address,
                         CustomerType = airline.AirlineType,
                         UserCreatedId = user.Id,
-                        RefuelCompany = REFUEL_COMPANY.TAPETCO,
+                        RefuelCompany = model.RefuelCompany,
 
                         //Image = bytes,
                         Gallon = model.TotalGallon,
                         Volume = model.TotalLiter,
                         Weight = model.TotalKg,
+                        UniqueId = Guid.NewGuid(),
                         Items = new List<ReceiptItem>()
 
                     };
@@ -283,7 +296,7 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                     var airport = db.Airports.FirstOrDefault(a => a.Id == user.AirportId);
 
-                    var refuelCompany = REFUEL_COMPANY.TAPETCO;
+                    var refuelCompany = model.RefuelCompany;
                     var depotType = receipt.IsFHS ? 4 : airport.DepotType;
                     var airlineType = db.Airlines.Where(a => a.Id == airline.Id).Select(a => a.AirlineType).FirstOrDefault() ?? 1;
                     var flightType = receipt.FlightType ?? (int)flight.FlightType;
@@ -369,7 +382,6 @@ namespace Megatech.FMS.WebAPI.Controllers
                         {
                             refuelItem = new RefuelItem
                             {
-                                FlightId = flight.Id,
                                 StartNumber = item.StartNumber,
                                 EndNumber = item.EndNumber,
                                 QCNo = item.CertNo,
@@ -396,6 +408,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                         }
                         else
                         {
+                            Logger.AppendLog("FHS", "refuel item existed", "fhs");
                             refuelItem.StartNumber = item.StartNumber;
                             refuelItem.EndNumber = item.EndNumber;
                             refuelItem.QCNo = item.CertNo;
@@ -416,7 +429,6 @@ namespace Megatech.FMS.WebAPI.Controllers
                             refuelItem.Unit = unit;
                             refuelItem.Currency = currency;
                             refuelItem.Status = REFUEL_ITEM_STATUS.DONE;
-
 
                         }
                         
@@ -465,10 +477,15 @@ namespace Megatech.FMS.WebAPI.Controllers
                         inv.Items.Add(invItem);
 
                     }
-                    receipt.StartTime = flight.StartTime = flight.RefuelItems.Min(rf => rf.StartTime);
-                    receipt.EndTime = flight.EndTime = flight.RefuelItems.Max(rf => rf.EndTime.Value);
+                    receipt.StartTime = flight.StartTime = flight.RefuelItems
+                        .Where(rf =>  rf.Status == REFUEL_ITEM_STATUS.DONE)
+                        .Min(rf => rf.StartTime);
+                    receipt.EndTime = flight.EndTime = flight.RefuelItems
+                        .Where(rf => rf.EndTime !=null && rf.Status == REFUEL_ITEM_STATUS.DONE)
+                        .Max(rf => rf.EndTime.Value);
 
-
+                    db.Database.Log = s => Logger.AppendLog("FHS", s, "fhs-sql");
+                    Logger.AppendLog("RECEIPT", "Start Saving receipt " + receipt.Number, "fhs");
                     db.SaveChanges();
                     trans.Commit();
                     Logger.AppendLog("RECEIPT", "Save receipt OK " + receipt.Number, "fhs");
@@ -484,7 +501,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                 catch (Exception ex)
                 {
                     Logger.LogException(ex, "fhs");
-                    trans.Rollback();
+                    //trans.Rollback();
                     return new ImportResult { Result = DATA_IMPORT_RESULT.FAILED, Message = ex.Message };
                 }
             }

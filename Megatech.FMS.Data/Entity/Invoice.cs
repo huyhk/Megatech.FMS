@@ -23,16 +23,10 @@ namespace FMS.Data
 
         public decimal Weight { get; set; }
 
-        public decimal TaxRate { get; set; } = 0;
-        public decimal TaxAmount
-        {
-            get
-            {
-                return Math.Round(SaleAmount * TaxRate, Currency == CURRENCY.USD ? 2 : 0, MidpointRounding.AwayFromZero);
-            }
-        }
+       
+        
 
-        public decimal SaleAmount { get; set; } = 0;
+      
 
         public decimal? Temperature { get; set; }
 
@@ -52,8 +46,26 @@ namespace FMS.Data
 
         public Flight Flight { get; set; }
 
+        public decimal TaxRate { get; set; } = 0;
+        public decimal SaleAmount { get; set; } = 0;
         public decimal? TotalAmount { get; set; }
 
+        public decimal? GreenTax { get; set; }
+
+        public decimal GreenTaxAmount {
+            get {
+                return (GreenTax??0) * Volume;
+            
+            }
+        }
+
+        public decimal TaxAmount
+        {
+            get
+            {
+                return Math.Round((SaleAmount + (decimal)GreenTaxAmount)* TaxRate, Currency == CURRENCY.USD ? 2 : 0, MidpointRounding.AwayFromZero);
+            }
+        }
         public int CustomerId { get; set; }
 
         public Airline Customer { get; set; }

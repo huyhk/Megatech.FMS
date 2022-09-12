@@ -57,6 +57,8 @@ namespace FMS.Data
 
         public DbSet<BM2505> BM2505s { get; set; }
 
+        public DbSet<GreenTax> GreenTaxes { get; set; }
+
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
 

@@ -236,6 +236,9 @@ namespace Megatech.FMS.WebAPI.Models
         public int? ReceiptCount { get; set; }
 
         public string ReceiptNumber { get; set; }
+
+        public Guid? ReceiptUniqueId { get; set; }
+
         public RETURN_UNIT? ReturnUnit { get;  set; }
         public AirlineViewModel AirlineModel { get; internal set; }
     }

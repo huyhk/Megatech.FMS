@@ -66,7 +66,7 @@ namespace Megatech.FMS.DataExchange
         {
             get
             {
-                return TaxRate * TotalUnitPrice * (Unit == UNIT.KG ? TotalKg : TotalGallonQuantity);
+                return Math.Round(TaxRate * (TotalOriginalAmount + EnvironmentAmount), CurrencyId == "VND" ? 0 : 2, MidpointRounding.AwayFromZero);
             }
         }
 
@@ -108,5 +108,10 @@ namespace Megatech.FMS.DataExchange
 
         public string Receipt { get; set; }
 
+        public byte IsReplace { get; set; }
+        public string RepSign { get; set; }
+        public string RepVoucherNo { get; set; }
+        public decimal EnvironmentPrice { get; internal set; }
+        public decimal EnvironmentAmount { get; internal set; }
     }
 }

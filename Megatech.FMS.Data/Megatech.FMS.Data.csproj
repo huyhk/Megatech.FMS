@@ -72,6 +72,7 @@
     <Compile Include="Entity\EntityLog.cs" />
     <Compile Include="Entity\Flight.cs" />
     <Compile Include="Entity\GeoLocation.cs" />
+    <Compile Include="Entity\GreenTax.cs" />
     <Compile Include="Entity\IAirportBase.cs" />
     <Compile Include="Entity\IBaseEntity.cs" />
     <Compile Include="Entity\Invoice.cs" />

@@ -150,6 +150,32 @@ namespace Megatech.FMS.WebAPI.Controllers
             return Ok(model);
         }
         [Authorize]
+        [Route("api/trucks/{id}")]
+        public IHttpActionResult GetTrucks(int id)
+        {
+            var truckId = Request.Headers.GetValues("Truck-Id").FirstOrDefault();
+            var truckCode = Request.Headers.GetValues("Truck-Code").FirstOrDefault();
+            Logger.AppendLog("TRUCK", "GetTrucks TruckId: " + truckId + " TruckCode: " + truckCode, "truck");
+            var model = db.Trucks.Where(t=>t.Id == id).Select(t => new TruckViewModel
+            {
+                Id = t.Id,
+                Code = t.Code,
+                TruckNo = t.Code,
+                
+                CurrentAmount = t.CurrentAmount,
+                AirportId = t.AirportId.Value,
+                AirportCode = t.CurrentAirport.Code,
+                TaxCode = t.CurrentAirport.TaxCode,
+                ReceiptCount = (int)t.ReceiptCount,
+                RefuelCompany = t.RefuelCompany,
+                IsFHS = t.RefuelCompany == REFUEL_COMPANY.NAFSC || t.RefuelCompany == REFUEL_COMPANY.TAPETCO,
+             
+            }).FirstOrDefault();
+
+            Logger.AppendLog("TRUCK", "Receipt Count: " + model.ReceiptCount.ToString(), "truck");
+            return Ok(model);
+        }
+        [Authorize]
         public IEnumerable<TruckViewModel> GetTrucks()
         {
             try
@@ -196,6 +222,9 @@ namespace Megatech.FMS.WebAPI.Controllers
             var userName = ClaimsPrincipal.Current.Identity.Name;
 
             var user = db.Users.FirstOrDefault(u => u.UserName == userName);
+            var truckId = Request.Headers.GetValues("Truck-Id").FirstOrDefault();
+            var truckCode = Request.Headers.GetValues("Truck-Code").FirstOrDefault();
+            Logger.AppendLog("TRUCK", "PostTruck TruckId: " + truckId + " TruckCode: " + truckCode + " ReceiptCount: " + model.ReceiptCount.ToString(), "truck");
 
             var truck = db.Trucks.Where(t => t.Code == model.TruckNo).FirstOrDefault();
             if (truck != null)

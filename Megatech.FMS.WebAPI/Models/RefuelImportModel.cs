@@ -69,9 +69,12 @@ namespace Megatech.FMS.WebAPI.Models
         [JsonIgnore]
 
         public Guid? LocalUniqueId { get; internal set; }
+
+       
+        public REFUEL_COMPANY? RefuelCompany { get; set; } = REFUEL_COMPANY.TAPETCO;
     }
 
-   
+
 
     public class DataImportItemModel
     {

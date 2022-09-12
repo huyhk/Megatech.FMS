@@ -36,6 +36,7 @@ namespace Megatech.FMS.DataExchange
                 {
                     try
                     {
+                        db.Database.ExecuteSqlCommand("exec usp_fix_invoices");
                         running = true;
                         //Logger.AppendLog("AITS", "start scanning AITS " + running.ToString(), "aits");
                         //var lstCancel = db.Invoices.Where(inv => (bool)inv.Exported_AITS && (bool)inv.RequestCancel && !(bool)inv.Cancelled).Select(inv => inv.Id).ToList();
@@ -46,7 +47,8 @@ namespace Megatech.FMS.DataExchange
                         //    //Logger.AppendLog("AITS", "cancel id: " + item.ToString() + " result "+ result.code + " - " + result.message, "aits");
                         //}
                         var loginList = string.IsNullOrEmpty(TAXCODE_LIST) ? new string[0] : TAXCODE_LIST.Split(new char[] { ',', ';' });
-                        var lst = db.Invoices.Where(inv => !(true == (bool)inv.Exported_AITS) && inv.Items.Count > 0 && loginList.Contains(inv.LoginTaxCode.Substring(inv.LoginTaxCode.Length-3))).Select(inv => inv.Id).ToList();
+                        var lst = db.Invoices.Where(inv => !(true == (bool)inv.Exported_AITS) && inv.Items.Count > 0
+                        && loginList.Contains(inv.LoginTaxCode.Substring(inv.LoginTaxCode.Length-3))).Select(inv => inv.Id).ToList();
                         //Logger.AppendLog("AITS", "invoice list : " + TAXCODE_LIST, "aits");
                         Logger.AppendLog("AITS", "AITS list count:" + lst.Count.ToString(), "exporter");
 
@@ -56,9 +58,9 @@ namespace Megatech.FMS.DataExchange
                             //if (!result.success)
                             //Logger.AppendLog("AITS", "result: " + result.code + " - " + result.message, "aits");
                         }
-
+                        var thre = DateTime.Today.AddDays(-30);
                         //Logger.AppendLog("OMEGA", "start scanning OMEGA " + running.ToString(), "aits");
-                        var lstOMEGA = db.Invoices.Where(inv => ((bool)inv.Exported_AITS && !(true == (bool)inv.Exported_OMEGA))).Select(inv => inv.Id).ToList();
+                        var lstOMEGA = db.Invoices.Where(inv => inv.Date> thre && ((bool)inv.Exported_AITS && !(true == (bool)inv.Exported_OMEGA))).Select(inv => inv.Id).ToList();
                         Logger.AppendLog("OMEGA", "OMEGA list count:" + lstOMEGA.Count.ToString(), "exporter");
                         foreach (var item in lstOMEGA)
                         {

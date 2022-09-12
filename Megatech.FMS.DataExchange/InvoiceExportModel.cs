@@ -41,7 +41,7 @@ namespace Megatech.FMS.DataExchange
                     cctbao_id = INVOICE_UNIQUE_ID.MANUAL;
                     khieu = INVOICE_SIGN_ID.MANUAL;
                 }
-                mnmua = inv.CustomerCode ?? "";
+                mnmua = inv.Flight.Airline!= null && inv.Flight.Airline.InvoiceCode !=null? inv.Flight.Airline.InvoiceCode :(inv.CustomerCode ?? "");
                 ten = inv.CustomerName;
                 dchi = inv.CustomerAddress;
                 mst = !string.IsNullOrEmpty(inv.TaxCode) ? inv.TaxCode :( inv.Flight.Airline != null ? inv.Flight.Airline.TaxCode : null ) ;
@@ -57,7 +57,7 @@ namespace Megatech.FMS.DataExchange
                 sbke = inv.BillNo;
 
                 nbke = inv.BillDate.ToString("yyyy-MM-dd");
-                tgtcthue = inv.SaleAmount;
+                tgtcthue = inv.SaleAmount + (decimal)inv.GreenTaxAmount;
                 tgtthue = inv.TaxAmount;
                 tgtttbso = inv.TotalAmount ?? 0;
 
@@ -166,6 +166,12 @@ namespace Megatech.FMS.DataExchange
                 var dt = new InvoiceExportDetailModel(inv);
                 dt.stt = 1;
                 data.Add(dt);
+                if (inv.GreenTax > 0)
+                {
+                    var dtTax = new InvoiceExportDetailModel(inv, true);
+                    dtTax.stt = 2;
+                    data.Add(dtTax);
+                }
             }
             else
                 foreach (var item in inv.Items)
@@ -199,7 +205,7 @@ namespace Megatech.FMS.DataExchange
 
                 tsuat = string.Format("{0:#0}", item.TaxRate > 0 ? item.TaxRate * 100 : -1);
                 ptthue = item.TaxRate * 100;
-                tthue = (decimal)Math.Round((double)(item.TaxAmount), item.Currency == CURRENCY.USD ? 2 : 0, MidpointRounding.AwayFromZero);
+                tthue = (decimal)Math.Round((double)(item.TaxRate*thtien), item.Currency == CURRENCY.USD ? 2 : 0, MidpointRounding.AwayFromZero);
                 tgtien = tthue + thtien;
                 inv_AircraftType = item.AircraftType ?? item.Flight.AircraftType;
                 inv_RegNo = item.AircraftCode ?? item.Flight.AircraftCode;
@@ -259,6 +265,43 @@ namespace Megatech.FMS.DataExchange
 
         }
 
+        public InvoiceExportDetailModel(Invoice item, bool greenTax = false)
+        {
+            try
+            {
+                ten = "Thuế BVMT";
+                //inv_Refueler_No = item.TruckNo;
+                //inv_Start_Meter = item.StartNumber;
+                //inv_End_Meter = item.EndNumber;
+                dgia = (decimal)item.GreenTax;
+                thtien = (decimal)item.GreenTaxAmount;// * (item.Unit == UNIT.GALLON ? item.Gallon : item.Weight);
+                dvtinh = "LIT";
+                sluong = item.Volume;
+
+                tsuat = string.Format("{0:#0}", item.TaxRate > 0 ? item.TaxRate * 100 : -1);
+                ptthue = item.TaxRate * 100;
+                tthue = (decimal)Math.Round((double)(item.TaxRate * item.GreenTaxAmount), item.Currency == CURRENCY.USD ? 2 : 0, MidpointRounding.AwayFromZero);
+                tgtien = tthue + thtien;
+                inv_AircraftType = item.AircraftType ?? item.Flight.AircraftType;
+                inv_RegNo = item.AircraftCode ?? item.Flight.AircraftCode;
+                inv_FlightNo = item.FlightCode ?? item.Flight.Code;
+                inv_Router = item.RouteName ?? item.Flight.RouteName;
+                inv_Actual_Temprature = item.Temperature;
+                inv_Actual_Ensity = item.Density;
+                inv_Observed_Liters = item.Volume;
+                inv_Quantity_Ga = item.Gallon;
+                inv_Quantity_Kg = item.Weight;
+                is_invoice = 1;
+                inv_Number_DeliveryBill = item.BillNo;
+                inv_Date_DeliveryBill = item.BillDate.ToString("yyyy-MM-dd");
+
+            }
+            catch (Exception ex)
+            {
+                Logging.Logger.AppendLog("EXP", "InvoiceExportDetailModel(Invoice item)", "aits-error");
+                Logging.Logger.LogException(ex, "aits-error");
+            }
+        }
         public int stt { get; set; }
 
         public string ten { get; set; }

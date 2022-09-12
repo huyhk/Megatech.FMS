@@ -41,7 +41,7 @@ namespace FMS.Data
 
         public DateTime DateImported { get; set; }
 
-        public DATA_IMPORT_RESULT ResultCode { get; set; }
+        public DATA_IMPORT_RESULT ResultCode { get; set; } = DATA_IMPORT_RESULT.FAILED;
 
         public string Result { get; set; }
 
@@ -52,6 +52,8 @@ namespace FMS.Data
 
         public DATA_MODE Mode { get; set; }
         public string ImagePath { get; set; }
+
+        public REFUEL_COMPANY? RefuelCompany { get; set; }
     }
 
     public enum DATA_IMPORT_RESULT

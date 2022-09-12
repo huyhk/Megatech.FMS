@@ -156,13 +156,15 @@ namespace Megatech.FMS.DataExchange
             using (DataContext db = new DataContext())
             {
                 running = true;
+
                 try
                 {
+                    //db.Database.ExecuteNonQuery("exec usp_fix_invoices");
                     db.DisableFilter("IsNotDeleted");
                     var inv = db.Invoices.Include(i => i.Items.Select(iit => iit.Operator))
                         .Include(i => i.Receipt)
                         .Include(i => i.Items.Select(iit => iit.Driver))
-                        .Include(i => i.Flight.Airport).FirstOrDefault(i => i.Id == id);
+                        .Include(i => i.Flight.Airport).FirstOrDefault(i => i.Id == id );
                     if (inv == null )
                         return new ExportResultModel { success = false, code = "404", message = "null invoice" };
                     var limitDate = new DateTime(2022, 04, 05);
@@ -186,20 +188,39 @@ namespace Megatech.FMS.DataExchange
 
                     //check null driver/operator
 
-                    if (inv.Items.Any(it => it.DriverId == null || it.OperatorId == null))                    
+                    //if (inv.Items.Any(it => it.DriverId == null || it.OperatorId == null))                    
+                    //{
+                    //    var nullDO = inv.Items.Where(it => it.DriverId == null || it.OperatorId == null).ToList();
+                    //    foreach (var item in nullDO)
+                    //    {
+                    //        var doNull = db.RefuelItems.Where(r => r.Id == item.RefuelItemId).Select(r => new { Driver = r.Driver, Operator = r.Operator }).FirstOrDefault();
+                    //        if (doNull != null)
+                    //        {
+                    //            item.Driver = doNull.Driver;
+                    //            item.Operator = doNull.Operator;
+                    //        }
+                    //    }                       
+                    //}
+                    if (inv.Items.Any(it => it.DriverId == null || it.Operator == null))
                     {
-                        var nullDO = inv.Items.Where(it => it.DriverId == null || it.OperatorId == null).ToList();
-                        foreach (var item in nullDO)
+                        foreach (var item in inv.Items.Where(it => it.Operator == null || it.DriverId == null))
                         {
-                            var doNull = db.RefuelItems.Where(r => r.Id == item.RefuelItemId).Select(r => new { Driver = r.Driver, Operator = r.Operator }).FirstOrDefault();
-                            if (doNull != null)
+                            var mi = db.RefuelItems.FirstOrDefault(r => r.FlightId == inv.FlightId &&
+                                r.TruckId == item.TruckId &&
+                                r.StartNumber == item.StartNumber &&
+                                r.EndNumber == item.EndNumber &&
+                                r.Gallon == item.Gallon &&
+                                r.Status == REFUEL_ITEM_STATUS.DONE);
+                            if (mi != null)
                             {
-                                item.Driver = doNull.Driver;
-                                item.Operator = doNull.Operator;
+                                item.RefuelItemId = mi.Id;
+                                item.DriverId = mi.DriverId;
+                                item.OperatorId = mi.OperatorId;
+                                
                             }
-                        }                       
+                        }
+                        
                     }
-
                     var exportResponse = Export(inv);
                     Logger.AppendLog("Export", "invoice id: " + id.ToString() + " done", "omega");
                     if (exportResponse.success)
@@ -214,7 +235,24 @@ namespace Megatech.FMS.DataExchange
                             var refuelItems = db.RefuelItems.Where(r => ids.Contains(r.Id) || guids.Contains(r.UniqueId)).ToList();
                             refuelItems.ForEach(r =>
                             {
+                                var invItem = inv.Items.FirstOrDefault(it => it.RefuelItemId == r.Id);
                                 r.Exported = true; r.InvoiceNumber = inv.InvoiceNumber; r.Printed = true;
+                                if (r.Status != REFUEL_ITEM_STATUS.DONE && invItem!=null)
+                                {
+                                    //reverse update from invoice to refuel data
+                                    r.Status = REFUEL_ITEM_STATUS.DONE;
+                                    r.StartTime = invItem.StartTime;
+                                    r.EndTime = invItem.EndTime;
+                                    r.StartNumber = invItem.StartNumber;
+                                    r.EndNumber = invItem.EndNumber;
+                                    r.ManualTemperature = invItem.Temperature;
+                                    r.Density = invItem.Density;
+                                    r.Gallon = r.Amount = invItem.Gallon;
+                                    r.Volume = invItem.Volume;
+                                    r.Weight = invItem.Weight;
+                                    r.TechLog = inv.TechLog;
+
+                                }
                                 r.DateUpdated = DateTime.Now;
                             });
 
@@ -226,8 +264,8 @@ namespace Megatech.FMS.DataExchange
                                 {
                                     var refItem = db.RefuelItems.FirstOrDefault(r => r.FlightId == inv.FlightId 
                                     && r.TruckId == item.TruckId 
-                                    && r.StartTime == item.StartTime 
-                                    && r.StartNumber == item.StartNumber && r.Gallon == item.Gallon && r.Status == REFUEL_ITEM_STATUS.DONE);
+                                   
+                                    && r.StartNumber == item.StartNumber );
                                     if (refItem != null)
                                     {
                                         item.RefuelItemId = refItem.Id;
@@ -321,6 +359,7 @@ namespace Megatech.FMS.DataExchange
                     jsonSettings.DateFormatString = EXPORT_DATE_FORMAT;
                     var data = JsonConvert.SerializeObject(jsonData, jsonSettings);
 
+                    Logger.AppendLog("ExportExtract", data, "omega-data");
 
                     using (var streamWriter = new StreamWriter(httpRequest.GetRequestStream()))
                     {
@@ -393,6 +432,7 @@ namespace Megatech.FMS.DataExchange
             {
                 DateTime startTime = inv.Items.Min(it => it.StartTime);
                 DateTime endTime = inv.Items.Max(it => it.EndTime);
+                var qcNo = inv.Items.Select(item => item.QCNo).FirstOrDefault();
                 var list = inv.Items.Select(item => new InventoryExportModel
                 {
                     Id = inv.Id,
@@ -409,7 +449,7 @@ namespace Megatech.FMS.DataExchange
                     UnitId = inv.Unit == UNIT.GALLON ? "Gal" : "Kg",
                     Date01 = inv.Flight.RefuelScheduledTime.Value.ToString(EXPORT_DATE_FORMAT),
                     PumpLocation = string.IsNullOrEmpty(inv.Flight.Parking) ? "N/A" : inv.Flight.Parking,
-                    TestResult = item.QCNo,
+                    TestResult = qcNo,
                     FuelTruckId = item.TruckNo,
                     GallonQuantity = item.Gallon,
 
@@ -426,6 +466,8 @@ namespace Megatech.FMS.DataExchange
                     TotalUnitPrice = inv.InvoiceType == INVOICE_TYPE.INVOICE ? (decimal)inv.Price : 0,
                     TaxRate = inv.InvoiceType == INVOICE_TYPE.INVOICE ? inv.TaxRate : 0,
                     Unit = inv.Unit,
+                    EnvironmentPrice = inv.GreenTax??0,
+                    EnvironmentAmount = (decimal)inv.GreenTaxAmount,
                     //TotalOriginalAmount = item.Price * (r.Unit == UNIT.GALLON ? item.Amount : item.Weight),
                     //TotalVATOriginalAmount = item.TaxRate * item.Price * (r.Unit == UNIT.GALLON ? item.Amount : item.Weight),
 

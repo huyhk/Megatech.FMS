@@ -77,8 +77,8 @@ namespace Megatech.FMS.DataExchange
         public static ExportResultModel Export(int id)
         {
             if (running)
-                return new   ExportResultModel { code = "999", message = "busy" };
-           
+                return new ExportResultModel { code = "999", message = "busy" };
+
             ExportResultModel result = null;
             try
             {
@@ -86,15 +86,20 @@ namespace Megatech.FMS.DataExchange
                 Logger.AppendLog("Export", "invoice id: " + id.ToString(), "aits");
                 using (DataContext db = new DataContext())
                 {
-                    db.DisableFilter("IsNotDeleted");
-                    var inv = db.Invoices.Include(a => a.Receipt).Include(a => a.Customer).Include(a => a.Flight.Airport).Include(a => a.Items).FirstOrDefault(i => i.Id == id);
-                    var taxCode = inv.LoginTaxCode.Substring(inv.LoginTaxCode.LastIndexOf("-")+1);
-                    if (inv == null )
+                    //db.DisableFilter("IsNotDeleted");
+                    var inv = db.Invoices.Include(a => a.Receipt)
+                        .Include(a => a.Customer)
+                        .Include(a => a.Flight.Airport)
+                        .Include(a => a.Items).FirstOrDefault(i => i.Id == id);
+                    //var taxCode = inv.LoginTaxCode.Substring(inv.LoginTaxCode.LastIndexOf("-")+1);
+                    if (inv == null)
                         result = new ExportResultModel { code = "404", message = "invoice not found" };
                     else if (inv.BillDate.Month < DateTime.Today.Month)
                         result = new ExportResultModel { code = "405", message = "different receipt and invoice month" };
-                    else if (TAXCODE_LIST != null && !TAXCODE_LIST.Contains(taxCode))
-                        result = new ExportResultModel { code = "402", message = "Login tax code " + inv.LoginTaxCode + " not in official list" };
+                    //else if (TAXCODE_LIST != null && !TAXCODE_LIST.Contains(taxCode))
+                    //    result = new ExportResultModel { code = "402", message = "Login tax code " + inv.LoginTaxCode + " not in official list" };
+                    else if (inv.Price <= 0 && inv.InvoiceType == INVOICE_TYPE.INVOICE)
+                        result = new ExportResultModel { code = "406", message = "Invoice Price = 0" };
                     else if (inv.Items.Count <= 0)
                         result = new ExportResultModel { code = "401", message = "Items not found" };
                     else
@@ -116,7 +121,8 @@ namespace Megatech.FMS.DataExchange
                                 inv.UniqueId = Guid.Parse(result.data.hoadon68_id);
                                 var ids = inv.Items.Select(it => it.RefuelItemId).ToArray();
 
-                                db.RefuelItems.Where(r => ids.Contains(r.Id)).Update(r => new RefuelItem { InvoiceNumber = inv.InvoiceNumber , DateUpdated = DateTime.Now});
+                                db.RefuelItems.Where(r => ids.Contains(r.Id))
+                                    .Update(r => new RefuelItem { InvoiceNumber = inv.InvoiceNumber, DateUpdated = DateTime.Now });
 
                                 //inv.Receipt.Image = null;
 
@@ -160,6 +166,7 @@ namespace Megatech.FMS.DataExchange
         {
             try
             {
+                var folderPath2 = @"E:\FMS\fms01api\receipts";
                 var folderPath = AppDomain.CurrentDomain.BaseDirectory + "receipts";
                 if (!Directory.Exists(folderPath))
                     Directory.CreateDirectory(folderPath);
@@ -191,7 +198,11 @@ namespace Megatech.FMS.DataExchange
                 else if (inv.Receipt.ImagePath != null)
                 {
                     var fullPath = Path.Combine(folderPath, inv.Receipt.ImagePath);
-                    
+                    if (!File.Exists(fullPath))
+                    {
+                        fullPath = Path.Combine(folderPath2, inv.Receipt.ImagePath);
+                    }
+
                     if (File.Exists(fullPath))
                     {
                         filePDF = new StreamContent(new FileStream(fullPath, FileMode.Open));
@@ -217,6 +228,10 @@ namespace Megatech.FMS.DataExchange
                 else if (inv.Receipt.SignaturePath != null)
                 {
                     var fullPath = Path.Combine(folderPath, inv.Receipt.SignaturePath);
+                    if (!File.Exists(fullPath))
+                    {
+                        fullPath = Path.Combine(folderPath2, inv.Receipt.ImagePath);
+                    }
                     if (File.Exists(fullPath))
                     {
                         fileSign = new StreamContent(new FileStream(fullPath, FileMode.Open));
@@ -280,11 +295,11 @@ namespace Megatech.FMS.DataExchange
         }
         public static ExportResultModel Cancel(int id)
         {
-           
+
             Logger.AppendLog("Cancel", "invoice id: " + id.ToString(), "aits");
             using (DataContext db = new DataContext())
             {
-                var inv = db.Invoices.Include(a => a.Flight.Airport).FirstOrDefault(i => i.Id == id );
+                var inv = db.Invoices.Include(a => a.Flight.Airport).FirstOrDefault(i => i.Id == id);
                 if (inv != null && (bool)inv.RequestCancel)
                 {
                     if (Login(inv.LoginTaxCode))
@@ -340,6 +355,155 @@ namespace Megatech.FMS.DataExchange
                 }
             }
             return null;
+        }
+
+        public static string UpdateImage(int? id = null)
+        {
+            var folderPath = AppDomain.CurrentDomain.BaseDirectory + "receipts";
+
+            using (var db = new DataContext())
+            {
+                var lst = db.Invoices
+                  .Include(re => re.Receipt)
+                  .Where(re => ((id == null) || re.Id == id) //&& re.Exported == null
+                  && (bool)re.Exported_AITS && re.RefuelCompany == REFUEL_COMPANY.NAFSC 
+                  && re.Date >= new DateTime(2022, 07, 31)
+                  && re.Receipt.AircraftType == null
+                    //&& re.Receipt.Signature == null
+                  && re.FHSUniqueId == null).ToList();
+                var result = string.Empty;
+                Logger.AppendLog("UPDATE", $"COUNT {lst.Count}", "fhs-update");
+                foreach (var inv in lst)
+                {
+                    try
+                    {
+                        if (Login(inv.LoginTaxCode))
+                        {
+
+
+                            Logger.AppendLog("UPDATE", $"Invoice Number:  {inv.InvoiceNumber} uniqueId {inv.UniqueId} image {inv.Receipt.ImagePath}", "fhs-update");
+                            using (var httpClient = new HttpClient())
+                            {
+                                var url = API_BASE_URL + "/Pattern/UploadReceipt";
+                                httpClient.DefaultRequestHeaders.Add("MaSoThue", inv.LoginTaxCode);
+                                httpClient.DefaultRequestHeaders.Add("Authorization", "Bear " + token + ";VP");
+                                StreamContent filePDF = null;
+                                if (inv.Receipt.ImagePath != null)
+                                {
+                                    var fullPath = Path.Combine(folderPath, inv.Receipt.ImagePath);
+
+
+                                    if (File.Exists(fullPath))
+                                    {
+                                        filePDF = new StreamContent(new FileStream(fullPath, FileMode.Open));
+
+                                        filePDF.Headers.Add("Content-Type", "image/*");
+                                        filePDF.Headers.Add("Content-Disposition", "form-data; name=\"upload\"; filename=\"" + Path.GetFileName(fullPath) + "\"");
+
+                                    }
+
+
+                                }
+                                var requestContent = new MultipartFormDataContent();
+                                requestContent.Add(filePDF, "upload");
+                                requestContent.Add(new StringContent(inv.UniqueId.ToString()), "hoadon68_id");
+                                using (var httpResponse = httpClient.PostAsync(url, requestContent))
+                                {
+
+                                    var content = httpResponse.Result.Content.ReadAsStringAsync();
+                                    if (httpResponse.Result.StatusCode == HttpStatusCode.OK)
+                                    {
+
+                                        result += content.Result + "\n";
+                                        inv.Exported = true;
+                                        Logger.AppendLog("UPDATE", $"Success uniqueId {inv.UniqueId}", "fhs-update");
+
+                                    }
+                                    else
+                                    {
+                                        Logger.AppendLog("UPDATE", $"Failed:  {inv.InvoiceNumber} uniqueId {inv.UniqueId}", "fhs-update");
+
+                                        Logger.AppendLog("UPDATE", $"Status:  {httpResponse.Result.StatusCode} content {content}", "fhs-update");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.AppendLog("UPDATE",$"Error : {ex.Message}", "fhs-update");
+
+                        Logger.LogException(ex, "fhs-update");
+                    }
+                }
+                db.SaveChanges();
+                return result;
+            }
+        }
+
+        public static string SendEmail(string customerCode, DateTime? fdate, DateTime? tdate)
+        {
+            using (var db = new DataContext())
+            {
+                var query = db.Invoices
+
+                  .Where(re => re.CustomerCode.Equals(customerCode, StringComparison.OrdinalIgnoreCase));
+                if (fdate != null)
+                    query = query.Where(re => re.Date >= fdate);
+                if (tdate != null)
+                    query = query.Where(re => re.Date <= tdate);
+
+                var lst = query.ToList();
+                var result = string.Empty;
+                Logger.AppendLog("UPDATE", $"COUNT {lst.Count}", "invoice-email");
+                foreach (var inv in lst)
+                {
+                    try
+                    {
+                        if (Login(inv.LoginTaxCode))
+                        {
+
+
+                            Logger.AppendLog("UPDATE", $"Invoice Number:  {inv.InvoiceNumber} uniqueId {inv.UniqueId} ", "invoice-email");
+                            using (var httpClient = new HttpClient())
+                            {
+                                var url = API_BASE_URL + "/Invoice68/SendInvoiceByEmail";
+                                httpClient.DefaultRequestHeaders.Add("MaSoThue", inv.LoginTaxCode);
+                                httpClient.DefaultRequestHeaders.Add("Authorization", "Bear " + token + ";VP");
+                             
+                                HttpContent jsonContent = new StringContent($"{{\"id\":\"{inv.UniqueId}\"}}", Encoding.UTF8, "application/json");
+                                using (var httpResponse = httpClient.PostAsync(url, jsonContent))
+                                {
+
+                                    var content = httpResponse.Result.Content.ReadAsStringAsync();
+                                    if (httpResponse.Result.StatusCode == HttpStatusCode.OK)
+                                    {
+
+                                        result += content.Result + "\n";
+                                        inv.Exported = true;
+                                        Logger.AppendLog("UPDATE", $"Success uniqueId {inv.UniqueId}", "invoice-email");
+
+                                    }
+                                    else
+                                    {
+                                        Logger.AppendLog("UPDATE", $"Failed:  {inv.InvoiceNumber} uniqueId {inv.UniqueId}", "invoice-email");
+
+                                        Logger.AppendLog("UPDATE", $"Status:  {httpResponse.Result.StatusCode} content {content}", "invoice-email");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.AppendLog("UPDATE", $"Error : {ex.Message}", "invoice-email");
+
+                        Logger.LogException(ex, "invoice-email");
+                    }
+                }
+                db.SaveChanges();
+                return result;
+            }
         }
     }
 }

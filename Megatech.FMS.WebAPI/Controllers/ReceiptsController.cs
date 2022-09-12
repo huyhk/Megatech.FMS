@@ -1,4 +1,5 @@
 ﻿using FMS.Data;
+using Megatech.FMS.DataExchange;
 using Megatech.FMS.WebAPI.App_Start;
 using Megatech.FMS.WebAPI.Models;
 using Newtonsoft.Json;
@@ -38,57 +39,146 @@ namespace Megatech.FMS.WebAPI.Controllers
 
             var model = db.Receipts.Include(re =>re.Items.Select(it=>it.Truck)).Include(re =>re.Flight.Airline).Include(re =>re.Customer)
                 .FirstOrDefault(re =>re.Id == id);
-
-            var receipt = new ReceiptModel
+            try
             {
-                Number = model.Number,
-                Date = model.Date,
-                FlightCode = model.FlightCode,
-                AircraftCode = model.AircraftCode,
-                AircraftType = model.AircraftType,
-                RouteName = model.RouteName,
-                FlightType = model.FlightType,
-                StartTime = model.StartTime,
-                EndTime = model.EndTime,
-                CustomerName = model.CustomerName,
-                CustomerCode = model.CustomerCode,
-                CustomerAddress = model.CustomerAddress,
-                TaxCode = model.TaxCode,
-                Gallon = model.Gallon,
-                Volume = model.Volume,
-                Weight = model.Weight,
-                IsFHS = model.IsFHS,
-                TechLog = model.TechLog,
-                Items = new List<ReceiptItemModel>()
-            };
-            foreach (var item in model.Items)
-            {
-                receipt.Items.Add(new ReceiptItemModel
+                var receipt = new ReceiptModel
                 {
-                    TruckNo = item.Truck.Code,
-                    StartNumber = item.StartNumber,
-                    EndNumber = item.EndNumber,
-                    StartTime = item.StartTime,
+                    Number = model.Number,
+                    Date = model.Date,
+                    FlightCode = model.FlightCode,
+                    AircraftCode = model.AircraftCode,
+                    AircraftType = string.IsNullOrEmpty(model.AircraftType)? model.Flight.AircraftType: model.AircraftType,
+                    RouteName = model.RouteName,
+                    FlightType = model.FlightType,
+                    StartTime = model.StartTime,
                     EndTime = model.EndTime,
-                    Density = item.Density,
-                    Temperature = item.Temperature,
-                    Gallon = item.Gallon,
-                    Volume = item.Volume,
-                    Weight = item.Weight,
-                    QualityNo = item.QualityNo
-                });
+                    CustomerName = model.CustomerName,
+                    CustomerCode = model.CustomerCode,
+                    CustomerAddress = model.CustomerAddress,
+                    TaxCode = model.TaxCode,
+                    Gallon = model.Gallon,
+                    Volume = model.Volume,
+                    Weight = model.Weight,
+                    IsFHS = model.IsFHS,
+                    TechLog = model.TechLog,
+
+                    Items = new List<ReceiptItemModel>()
+                };
+                foreach (var item in model.Items)
+                {
+                    receipt.Items.Add(new ReceiptItemModel
+                    {
+                        TruckNo = item.Truck.Code,
+                        StartNumber = item.StartNumber,
+                        EndNumber = item.EndNumber,
+                        StartTime = item.StartTime,
+                        EndTime = model.EndTime,
+                        Density = item.Density,
+                        Temperature = item.Temperature,
+                        Gallon = item.Gallon,
+                        Volume = item.Volume,
+                        Weight = item.Weight,
+                        QualityNo = item.QualityNo
+                    });
+                }
+                if (model.SignaturePath != null)
+                {
+                    receipt.Signature = File.ReadAllBytes(Path.Combine(folderPath, model.SignaturePath));
+                }
+                else if (model.Signature != null)
+                    receipt.Signature = model.Signature;
+                if (model.SellerPath != null)
+                {
+                    receipt.SellerSignature = File.ReadAllBytes(Path.Combine(folderPath, model.SellerPath));
+                }
+                else if (model.SellerImage != null)
+                    receipt.SellerSignature = model.SellerImage;
+                Image img = receipt.CreateReceiptImage();
+                img.Save(Path.Combine(folderPath, receipt.Number + ".jpg"));
+                return Ok(receipt);
             }
-            if (model.SignaturePath != null)
+            catch (Exception ex){
+                return Ok(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("api/receipt/image")]
+        public IHttpActionResult CreateImage()
+        {
+            var folderPath = HostingEnvironment.MapPath("/receipts");
+            var lst = db.Receipts
+                .Include(re => re.Items.Select(it => it.Truck)).Include(re => re.Flight.Airline).Include(re => re.Customer)
+                .Where(re => re.RefuelCompany == REFUEL_COMPANY.NAFSC && re.Date >= new DateTime(2022, 07, 31)
+                && re.AircraftType == null).ToList();
+            foreach (var model in lst)
             {
-                receipt.Signature = File.ReadAllBytes(Path.Combine(folderPath, model.SignaturePath));
+
+                var receipt = new ReceiptModel
+                {
+                    Number = model.Number,
+                    Date = model.Date,
+                    FlightCode = model.FlightCode,
+                    AircraftCode = model.AircraftCode,
+                    AircraftType = model.Flight.AircraftType,
+                    RouteName = model.RouteName,
+                    FlightType = model.FlightType,
+                    StartTime = model.StartTime,
+                    EndTime = model.EndTime,
+                    CustomerName = model.CustomerName,
+                    CustomerCode = model.CustomerCode,
+                    CustomerAddress = model.CustomerAddress,
+                    TaxCode = model.TaxCode,
+                    Gallon = model.Gallon,
+                    Volume = model.Volume,
+                    Weight = model.Weight,
+                    IsFHS = model.IsFHS,
+                    TechLog = model.TechLog,
+                    Items = new List<ReceiptItemModel>()
+                };
+                foreach (var item in model.Items)
+                {
+                    receipt.Items.Add(new ReceiptItemModel
+                    {
+                        TruckNo = item.Truck.Code,
+                        StartNumber = item.StartNumber,
+                        EndNumber = item.EndNumber,
+                        StartTime = item.StartTime,
+                        EndTime = model.EndTime,
+                        Density = item.Density,
+                        Temperature = item.Temperature,
+                        Gallon = item.Gallon,
+                        Volume = item.Volume,
+                        Weight = item.Weight,
+                        QualityNo = item.QualityNo
+                    });
+                }
+                if (model.SignaturePath != null)
+                {
+                    receipt.Signature = File.ReadAllBytes(Path.Combine(folderPath, model.SignaturePath));
+                }
+                else receipt.Signature = model.Signature;
+                if (model.SellerPath != null)
+                {
+                    receipt.SellerSignature = File.ReadAllBytes(Path.Combine(folderPath, model.SellerPath));
+                }
+                else receipt.SellerSignature = model.SellerImage;
+                Image img = receipt.CreateReceiptImage();
+                img.Save(Path.Combine(folderPath, receipt.Number + ".jpg"));
+                model.ImagePath = receipt.Number + ".jpg";
             }
-            if (model.SellerPath != null)
-            {
-                receipt.SellerSignature = File.ReadAllBytes(Path.Combine(folderPath, model.SellerPath));
-            }
-            Image img = receipt.CreateReceiptImage();
-            img.Save(Path.Combine(folderPath, receipt.Number + ".jpg"));
-            return Ok(receipt);
+
+            db.SaveChanges();
+
+            return Ok(lst);
+        }
+
+        [HttpGet]
+        [Route("api/receipt/updateImage/{id?}")]
+        public IHttpActionResult UpdateImage(int? id = null)
+        {
+            var ret = InvoiceExporter.UpdateImage(id);
+            return Ok(ret);
         }
 
         [HttpGet]
@@ -131,6 +221,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                 var depotType = airport.DepotType;
                 var airlineType = db.Airlines.Where(a => a.Id == flight.AirlineId).Select(a => a.AirlineType).FirstOrDefault() ?? 0;
                 var flightType = (int)flight.FlightType;
+                var airline = flight.Airline;
 
 
                 var prices = (from p in db.ProductPrices.Include(p => p.Product)
@@ -157,14 +248,25 @@ namespace Megatech.FMS.WebAPI.Controllers
                     unit = unit = pPrice.Unit == 0 ? UNIT.GALLON : UNIT.KG;
                 }
 
-                Logger.AppendLog("PRICE", "price ok", "receipt-json");
+                decimal greenTax = 0M;
+
+                //Logger.AppendLog("RECEIPT", string.Format("greentax :{0} airlineTypev:{1} flightType:{2}",greenTax,airlineType, flightType), "receipt-create");
+
+                if ((airline.DomesticInvoice ?? false) && airlineType == 0 && flightType == 0)
+                {
+                    greenTax = db.GreenTaxes.OrderByDescending(gr => gr.StartDate).Where(gr => gr.StartDate <= flight.EndTime)
+                        .Select(gr => gr.TaxAmount).FirstOrDefault();
+
+
+                }
+                Logger.AppendLog("RECEIPT", string.Format("greentax :{0} airlineTyp:{1} flightType:{2}", greenTax, airlineType, flightType), "receipt-json");
                 var inv = new Invoice
                 {
                     Flight = flight,
                     Customer = flight.Airline,
                     FlightCode = flight.Code,
                     FlightType = flight.FlightType,
-                    CustomerCode = flight.Airline.Code,
+                    CustomerCode = string.IsNullOrEmpty(flight.Airline.InvoiceCode)? flight.Airline.Code: flight.Airline.InvoiceCode,
                     CustomerName = flight.Airline.Name,
                     CustomerAddress = flight.Airline.Address,
                     TaxCode = flight.Airline.TaxCode,
@@ -174,9 +276,10 @@ namespace Megatech.FMS.WebAPI.Controllers
                     RouteName = flight.RouteName,
                     BillNo = num,
                     BillDate = flight.EndTime.Date,
-                    InvoiceType = flight.FlightType == FLIGHT_TYPE.DOMESTIC && flight.Airline.AirlineType == 0 ? INVOICE_TYPE.BILL : INVOICE_TYPE.INVOICE,
+                    InvoiceType = (airline.DomesticInvoice??false)  || flight.Airline.AirlineType == 1 ? INVOICE_TYPE.INVOICE : INVOICE_TYPE.BILL,
                     Price = price,
                     Unit = unit,
+                    
                     Currency = currency,
                     Items = new List<InvoiceItem>(),
                     
@@ -213,9 +316,15 @@ namespace Megatech.FMS.WebAPI.Controllers
                 inv.Gallon = inv.Items.Sum(it => it.Gallon);
                 inv.Volume = (decimal)inv.Items.Sum(it => it.Volume);
                 inv.Weight = (decimal)inv.Items.Sum(it => it.Weight);
+                inv.TaxRate = flightType == (int) FLIGHT_TYPE.DOMESTIC ? 0.1M : 0M;
                 inv.SaleAmount = (decimal)((inv.Unit == UNIT.GALLON ? inv.Gallon : inv.Weight) * inv.Price);
-                inv.TotalAmount = inv.SaleAmount + inv.TaxAmount;
                 
+                inv.GreenTax = inv.BillDate >= new DateTime(2022, 08, 01) ? greenTax : 0;
+                inv.TotalAmount = inv.SaleAmount + inv.TaxAmount + inv.GreenTaxAmount;
+
+                Logger.AppendLog("RECEIPT", string.Format("greentax :{0} airlineTyp:{1} flightType:{2}, taxRate: {3}", greenTax, airlineType, flightType, inv.TaxRate), "receipt-json");
+
+
                 DataExchange.InvoiceExportModel model = new DataExchange.InvoiceExportModel(inv);
 
 
@@ -439,10 +548,11 @@ namespace Megatech.FMS.WebAPI.Controllers
 
             var userId = user != null ? user.Id : 0;
             //var json = JsonConvert.SerializeObject(receipt);
-            if (receipt.EndTime < DateTime.Today.AddDays(-2))
+            if (receipt.EndTime < DateTime.Today.AddDays(-20))
             {
                 Logger.AppendLog(ticks, "Error Old receipt " + receipt.Number, "receipt");
-                return BadRequest();
+                receipt.Id = int.MaxValue;
+                return Ok(receipt);
             }
 
             var folderPath = HostingEnvironment.MapPath("/receipts");
@@ -456,9 +566,11 @@ namespace Megatech.FMS.WebAPI.Controllers
                 var model = db.Receipts.FirstOrDefault(re =>re.Number == receipt.Number);
                 if (model != null)
                 {
-                    Logger.AppendLog(ticks, "Receipt # " + receipt.Number + " existed", "receipt");
+                    Logger.AppendLog(ticks, $"Receipt # {receipt.Number} existed", "receipt");
+                    Logger.AppendLog(ticks, $"Model.StartTime {model.StartTime} Receipt.StartTime {receipt.StartTime} Model.Gallon {model.Gallon} Receipt.Gallon {receipt.Gallon}", "receipt");
                     //receipt.Id = model.Id;
                 }
+                /*
                 if ((model == null && !receipt.IsCancelled || receipt.Overwrite))
                 {
                     model = new Receipt
@@ -647,6 +759,8 @@ namespace Megatech.FMS.WebAPI.Controllers
                         {
                             pPrice = prices.OrderByDescending(p => p.StartDate)
                                                             .FirstOrDefault(p =>  p.CustomerId == model.Flight.AirlineId);
+                            if (pPrice == null)
+                                pPrice = new ProductPrice { Currency = CURRENCY.VND , Unit = (int)UNIT.GALLON};
                         }
                         if (pPrice == null)
                             pPrice = prices.OrderByDescending(p => p.StartDate)
@@ -698,28 +812,32 @@ namespace Megatech.FMS.WebAPI.Controllers
                 }
 
                 db.Database.CurrentTransaction.Commit();
-
-                if (receipt.IsCancelled && model != null)
-                {
-                    Logger.AppendLog("INV", "Cancel invoice Reason:" + receipt.CancelReason, "invoice");
-                    var invoices = db.Invoices.Where(inv => inv.ReceiptId == model.Id).ToList();
-                    foreach (var item in invoices)
-                    {
-                        Logger.AppendLog("INV", "Invoice Id : " + item.Id.ToString(), "invoice");
-                        item.CancelReason = receipt.CancelReason;
-                        item.RequestCancel = true;
-                        db.SaveChanges();
-                        //DataExchange.InvoiceExporter.Cancel(item.Id);
-                    }
-                    Logger.AppendLog("INV", "END cancel invoice", "invoice");
-                }
-                //HostingEnvironment.QueueBackgroundWorkItem(ct => DataExchange.Exporter.ExportInvoice());
-                if (model != null)
-                {
+                */
+                if (model != null && receipt.ReplacedId == null &&  model.StartTime == receipt.StartTime)
                     receipt.Id = model.Id;
-                    receipt.PdfImageString = null;
-                    receipt.SignImageString = null;
-                    receipt.SellerImageString = null;
+                else
+                    receipt = ReceiptModel.SaveReceipt(receipt,ticks);
+                //if (receipt.IsCancelled && model != null)
+                //{
+                //    Logger.AppendLog("INV", "Cancel invoice Reason:" + receipt.CancelReason, "invoice");
+                //    var invoices = db.Invoices.Where(inv => inv.ReceiptId == model.Id).ToList();
+                //    foreach (var item in invoices)
+                //    {
+                //        Logger.AppendLog("INV", "Invoice Id : " + item.Id.ToString(), "invoice");
+                //        item.CancelReason = receipt.CancelReason;
+                //        item.RequestCancel = true;
+                //        db.SaveChanges();
+                //        //DataExchange.InvoiceExporter.Cancel(item.Id);
+                //    }
+                //    Logger.AppendLog("INV", "END cancel invoice", "invoice");
+                //}
+                //HostingEnvironment.QueueBackgroundWorkItem(ct => DataExchange.Exporter.ExportInvoice());
+                if (receipt.Id>0)
+                {
+                    //receipt.Id = model.Id;
+                    //receipt.PdfImageString = null;
+                    //receipt.SignImageString = null;
+                    //receipt.SellerImageString = null;
                     return Ok(receipt);
                 }
                 return NotFound();

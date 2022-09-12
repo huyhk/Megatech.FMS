@@ -86,8 +86,12 @@ namespace FMS.Data
         public string ImagePath { get; set; }
         public string SignaturePath { get; set; }
         public string SellerPath { get; set; }
-        public decimal? TechLog { get; set; }
+        public decimal? TechLog { get; set; }   
         public string ReplaceNumber { get; set; }
+
+        public bool? IsReuse { get; set; }
+        public Guid? UniqueId { get; set; }
+        public string ReplacedId { get; set; }
 
         public List<Invoice> CreateInvoices()
         {
@@ -99,7 +103,7 @@ namespace FMS.Data
                     BillDate = Date,
                     BillNo = Number,
                     FlightId = FlightId,
-                    CustomerId = (int)Flight.AirlineId,
+                    CustomerId = CustomerId,
                     CustomerName = CustomerName,
                     CustomerAddress = CustomerAddress,
                     CustomerCode =  CustomerCode,
