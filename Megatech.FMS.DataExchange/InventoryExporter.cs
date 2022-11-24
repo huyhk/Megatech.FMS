@@ -177,7 +177,7 @@ namespace Megatech.FMS.DataExchange
 
                     Logger.AppendLog("Export", "invoice id: " + id.ToString() + " invoice # " + inv.InvoiceNumber + " bill #: " + inv.BillNo, "omega");
 
-                    if (string.IsNullOrEmpty(inv.InvoiceNumber))
+                    if (string.IsNullOrEmpty(inv.InvoiceNumber) )
                     {
                         /// looking for invoice number from refuelitems
                         /// 
@@ -230,13 +230,15 @@ namespace Megatech.FMS.DataExchange
                         inv.Exported_OMEGA_Date = DateTime.Now;
                         var ids = inv.Items.Select(x => x.RefuelItemId ).ToArray();
                         var guids = inv.Items.Select(x => x.RefuelUniqueId).ToArray();
-                        if (db.SaveChanges() > 0)
+                        if (db.SaveChanges() > 0 && (inv.InvoiceType == INVOICE_TYPE.INVOICE || inv.InvoiceType == INVOICE_TYPE.BILL))
                         {
                             var refuelItems = db.RefuelItems.Where(r => ids.Contains(r.Id) || guids.Contains(r.UniqueId)).ToList();
                             refuelItems.ForEach(r =>
                             {
                                 var invItem = inv.Items.FirstOrDefault(it => it.RefuelItemId == r.Id);
-                                r.Exported = true; r.InvoiceNumber = inv.InvoiceNumber; r.Printed = true;
+                                r.Exported = true; 
+                                r.InvoiceNumber = inv.InvoiceNumber; 
+                                r.Printed = true;
                                 if (r.Status != REFUEL_ITEM_STATUS.DONE && invItem!=null)
                                 {
                                     //reverse update from invoice to refuel data
@@ -447,7 +449,7 @@ namespace Megatech.FMS.DataExchange
                     ObjectId = inv.CustomerCode,
                     CurrencyId = inv.Currency.ToString(),
                     UnitId = inv.Unit == UNIT.GALLON ? "Gal" : "Kg",
-                    Date01 = inv.Flight.RefuelScheduledTime.Value.ToString(EXPORT_DATE_FORMAT),
+                    Date01 = (inv.Flight.RefuelScheduledTime??inv.Flight.RefuelTime).Value.ToString(EXPORT_DATE_FORMAT),
                     PumpLocation = string.IsNullOrEmpty(inv.Flight.Parking) ? "N/A" : inv.Flight.Parking,
                     TestResult = qcNo,
                     FuelTruckId = item.TruckNo,

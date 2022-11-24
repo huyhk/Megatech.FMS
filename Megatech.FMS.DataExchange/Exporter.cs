@@ -2,7 +2,9 @@
 using Megatech.FMS.Logging;
 using System;
 using System.Configuration;
+using System.Data.Entity;
 using System.Linq;
+using System.Threading;
 
 namespace Megatech.FMS.DataExchange
 {
@@ -16,6 +18,12 @@ namespace Megatech.FMS.DataExchange
         private static DateTime lastCall;
         public static void ExportInvoice()
         {
+            new Thread(() =>
+            {
+                Thread.CurrentThread.IsBackground = true;
+                FlightImporter.Import(DateTime.Today);
+            }).Start();
+
 #if DEBUG
             TEST_EXPORT = true;
 #endif
@@ -27,6 +35,8 @@ namespace Megatech.FMS.DataExchange
 
             }
             // Logger.AppendLog("AITS", "start scanning " + running.ToString(), "aits");
+
+          
 
             if (!running && !TEST_EXPORT)
             {
@@ -48,7 +58,7 @@ namespace Megatech.FMS.DataExchange
                         //}
                         var loginList = string.IsNullOrEmpty(TAXCODE_LIST) ? new string[0] : TAXCODE_LIST.Split(new char[] { ',', ';' });
                         var lst = db.Invoices.Where(inv => !(true == (bool)inv.Exported_AITS) && inv.Items.Count > 0
-                        && loginList.Contains(inv.LoginTaxCode.Substring(inv.LoginTaxCode.Length-3))).Select(inv => inv.Id).ToList();
+                        && DbFunctions.DiffDays(DateTime.Today, inv.BillDate) >-10 ).Select(inv => inv.Id).ToList();
                         //Logger.AppendLog("AITS", "invoice list : " + TAXCODE_LIST, "aits");
                         Logger.AppendLog("AITS", "AITS list count:" + lst.Count.ToString(), "exporter");
 

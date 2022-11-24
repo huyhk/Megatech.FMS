@@ -114,6 +114,10 @@ namespace FMS.Data
 
         public string LastUpdateDevice { get; set; }
 
+        public string LegNo { get; set; }
+
+        public string LegUpdateNo { get; set; }
+        public bool? IsOutRefuel { get; set; }
     }
     public class AmountReport
     {
@@ -196,6 +200,7 @@ namespace FMS.Data
         IMPORT,
         WEB,
         COPY,
-        APP
+        APP, 
+        FHS
     }
 }

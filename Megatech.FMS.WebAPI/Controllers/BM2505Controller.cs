@@ -46,6 +46,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                         HosePressure = model.HosePressure,
                         OperatorId = model.OperatorId,
                         Time = model.Time,
+                        Note = model.Note,
                         IsDeleted = model.IsDeleted,
                         UserCreatedId = user.Id,
                         DateCreated = DateTime.Now,
@@ -72,6 +73,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                     entity.HosePressure = model.HosePressure;
                     entity.OperatorId = model.OperatorId;
                     entity.Time = model.Time;
+                    entity.Note = model.Note;
                     entity.IsDeleted = model.IsDeleted;
                     if (entity.IsDeleted)
                         entity.UserDeletedId = user.Id;
@@ -94,31 +96,34 @@ namespace Megatech.FMS.WebAPI.Controllers
 
         public IHttpActionResult Get(int id)
         {
-            var date = DateTime.Today.AddDays(-7);
-            var lst = db.BM2505s.Where(b => b.TruckId == id && b.Time >= date).Select(b => new BM2505Model
+            using (var db = new DataContext())
             {
-                Id = b.Id,
-                TruckId = b.TruckId,
-                FlightId = b.FlightId,
-                FlightCode = b.Flight.Code,
-                AircraftCode = b.Flight.AircraftCode,
-                TankNo = b.TankNo,
-                RTCNo = b.RTCNo,
-                Temperature = b.Temperature,
-                Density = b.Density,
-                Density15 = b.Density15,
-                AppearanceCheck = b.AppearanceCheck,
-                DensityCheck = b.DensityCheck,
-                WaterCheck = b.WaterCheck,
-                PressureDiff = b.PressureDiff,
-                HosePressure = b.HosePressure,
-                OperatorId = b.OperatorId,
-                OperatorName = b.Operator.FullName,
-                Time = b.Time
-            }).ToList();
+                var date = DateTime.Today.AddDays(-7);
+                var lst = db.BM2505s.Where(b => b.TruckId == id && b.Time >= date).Select(b => new BM2505Model
+                {
+                    Id = b.Id,
+                    TruckId = b.TruckId,
+                    FlightId = b.FlightId,
+                    FlightCode = b.Flight.Code,
+                    AircraftCode = b.Flight.AircraftCode,
+                    TankNo = b.TankNo,
+                    RTCNo = b.RTCNo,
+                    Temperature = b.Temperature,
+                    Density = b.Density,
+                    Density15 = b.Density15,
+                    AppearanceCheck = b.AppearanceCheck,
+                    DensityCheck = b.DensityCheck,
+                    WaterCheck = b.WaterCheck,
+                    PressureDiff = b.PressureDiff,
+                    HosePressure = b.HosePressure,
+                    OperatorId = b.OperatorId,
+                    OperatorName = b.Operator.FullName,
+                    Time = b.Time,
+                    Note = b.Note
+                }).ToList();
 
-            return Ok(lst);
-
+                return Ok(lst);
+            }
         }
 
     }

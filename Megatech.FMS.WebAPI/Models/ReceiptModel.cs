@@ -287,7 +287,7 @@ namespace Megatech.FMS.WebAPI.Models
 
         }
 
-        public static ReceiptModel SaveReceipt(ReceiptModel receipt,string ticks = null)
+        public static ReceiptModel SaveReceipt(ReceiptModel receipt,string ticks = null, int? userId = null)
         {
             if (string.IsNullOrEmpty(ticks))
                  ticks = DateTime.Now.Ticks.ToString();
@@ -299,11 +299,13 @@ namespace Megatech.FMS.WebAPI.Models
 
             using (var db = new DataContext())
             {
-                db.Database.BeginTransaction();
+                db.Database.BeginTransaction(System.Data.IsolationLevel.ReadUncommitted);
                 try
                 {
                     var number = receipt.Number;
                     var model = db.Receipts.FirstOrDefault(r => r.Number == number && r.IsReuse == receipt.IsReuse );
+                    if (model != null)
+                        Logger.AppendLog("RECEIPT", $"Receipt number ${number} existed", "receipt");
 
                     if (model != null && model.UniqueId.ToString() != receipt.UniqueId)
                         model = null;
@@ -311,7 +313,7 @@ namespace Megatech.FMS.WebAPI.Models
                     {
                         model = new Receipt
                         {
-                            //UserCreatedId = userId,
+                            UserCreatedId = userId,
 
                             Number = number,
                             Date = receipt.Date,
@@ -457,7 +459,7 @@ namespace Megatech.FMS.WebAPI.Models
                         var airlineType = airline == null ? 0 : airline.AirlineType;
                         var flight = model.Flight;
                         var flightType = model.FlightType ?? (int)flight.FlightType;
-
+                        var airlineId = airline == null ? model.Flight.AirlineId : airline.Id;
 
                         var prices = (from p in db.ProductPrices.Include(p => p.Product)
                                       where p.StartDate <= model.EndTime // && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch
@@ -466,11 +468,11 @@ namespace Megatech.FMS.WebAPI.Models
                                       select groups.OrderByDescending(g => g.StartDate).FirstOrDefault()).ToList();
 
                         var pPrice = prices.OrderByDescending(p => p.StartDate)
-                                                            .FirstOrDefault(p => p.AirlineType == flightType && p.CustomerId == model.Flight.AirlineId);
+                                                            .FirstOrDefault(p => p.AirlineType == flightType && p.CustomerId == airlineId);
                         if (pPrice == null && airlineType == (int)CUSTOMER_TYPE.LOCAL)
                         {
                             pPrice = prices.OrderByDescending(p => p.StartDate)
-                                                            .FirstOrDefault(p => p.CustomerId == model.Flight.AirlineId);
+                                                            .FirstOrDefault(p => p.CustomerId == airlineId);
                         }
 
                         if (pPrice == null)
@@ -484,7 +486,7 @@ namespace Megatech.FMS.WebAPI.Models
                             unit = unit = pPrice.Unit == 0 ? UNIT.GALLON : UNIT.KG;
                         }
 
-                        Logger.AppendLog(ticks, "PRICE OK", "receipt");
+                        Logger.AppendLog(ticks, $"PRICE OK, UserId {userId}", "receipt");
 
 
                         var invoices = model.CreateInvoices();
@@ -585,12 +587,10 @@ namespace Megatech.FMS.WebAPI.Models
         }
         private static void SaveImage(byte[] bytes, string fileName, string folderPath)
         {
-            //Logger.AppendLog("RECEIPT", "Save " + fileName, "receipt");
-            //var fs = new BinaryWriter(new FileStream(Path.Combine(folderPath, fileName), FileMode.Append, FileAccess.Write));
-            //fs.Write(bytes);
-            //fs.Close();
+
             try
             {
+                //File.WriteAllBytes(Path.Combine(folderPath, fileName), bytes);
                 using (var ms = new MemoryStream(bytes))
                 {
                     Image img = Image.FromStream(ms);

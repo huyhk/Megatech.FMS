@@ -62,7 +62,7 @@ namespace Megatech.FMS.DataExchange
                 tgtttbso = inv.TotalAmount ?? 0;
 
                 loaihd = inv.InvoiceType == INVOICE_TYPE.INVOICE ? 1 : 4;
-                inv_KeyAPI_SHXTN = inv.FlightId + inv.BillNo;// + inv.Id;
+                inv_KeyAPI_SHXTN = inv.FlightId + inv.BillNo + inv.Id;
                 if (inv.InvoiceType == INVOICE_TYPE.INVOICE)
                     inv_Invoice_Type = inv.CustomerType == CUSTOMER_TYPE.INTERNATIONAL && inv.FlightType == FLIGHT_TYPE.OVERSEA ? 1 :
                         inv.CustomerType == CUSTOMER_TYPE.INTERNATIONAL && inv.FlightType == FLIGHT_TYPE.DOMESTIC ? 2 :
@@ -219,6 +219,7 @@ namespace Megatech.FMS.DataExchange
                 is_invoice = 1;
                 inv_Number_DeliveryBill = item.BillNo;
                 inv_Date_DeliveryBill = item.BillDate.ToString("yyyy-MM-dd");
+                leg_no = item.Flight.LegNo;
 
             }
             catch (Exception ex)
@@ -260,7 +261,7 @@ namespace Megatech.FMS.DataExchange
             is_invoice = 1;
             inv_Number_DeliveryBill = item.Invoice.BillNo;
             inv_Date_DeliveryBill = item.Invoice.BillDate.ToString("yyyy-MM-dd");
-
+            leg_no = item.Invoice.Flight.LegNo;
 
 
         }
@@ -294,6 +295,7 @@ namespace Megatech.FMS.DataExchange
                 is_invoice = 1;
                 inv_Number_DeliveryBill = item.BillNo;
                 inv_Date_DeliveryBill = item.BillDate.ToString("yyyy-MM-dd");
+                leg_no = item.Flight.LegNo;
 
             }
             catch (Exception ex)
@@ -334,6 +336,8 @@ namespace Megatech.FMS.DataExchange
         public int is_invoice { get; set; }
 
         public int tchat { get; set; } = 1;
+
+        public string leg_no { get; set; }
 
     }
 

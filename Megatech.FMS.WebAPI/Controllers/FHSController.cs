@@ -110,7 +110,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                             if (db.FHSImports.Any(f => f.UniqueId == model.UniqueId && f.ResultCode == DATA_IMPORT_RESULT.SUCCESS))
                             {
                                 var fhs = db.FHSImports.FirstOrDefault(f => f.UniqueId == model.UniqueId && f.ResultCode == DATA_IMPORT_RESULT.SUCCESS);
-                                return Ok(new ImportResult { Result = DATA_IMPORT_RESULT.DUPLICATED, Link = Request.GetRequestContext().Url.Request.RequestUri + "/" + fhs.LocalUniqueId, ReturnId = fhs.LocalUniqueId });
+                                return Ok(new ImportResult { Result = DATA_IMPORT_RESULT.DUPLICATED, Message=$"Receipt Number {model.ReceiptNumber} duplicated", Link = Request.GetRequestContext().Url.Request.RequestUri + "/" + fhs.LocalUniqueId, ReturnId = fhs.LocalUniqueId });
                             }
                         }
                         else
@@ -134,9 +134,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                         if (dtImport.RefuelCompany == null || dtImport.RefuelCompany == REFUEL_COMPANY.SKYPEC)
                             dtImport.RefuelCompany = userName == "NAFSC" ? REFUEL_COMPANY.NAFSC : REFUEL_COMPANY.TAPETCO;
 
-                        db.FHSImports.Add(dtImport);
-                        db.SaveChanges();
-                        Logger.AppendLog("MODEL", "saved raw data " + model.UniqueId, "fhs");
+                        
 
                         model.AirportId = user.AirportId;
                         model.LocalUniqueId = dtImport.LocalUniqueId;
@@ -155,6 +153,21 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                         dtImport.ResultCode = result.Result;
                         dtImport.Result = result.Message?.ToString();
+
+                        if (dtImport.ResultCode == DATA_IMPORT_RESULT.SUCCESS)
+                            db.FHSImports.Add(dtImport);
+                        else if (dtImport.ResultCode == DATA_IMPORT_RESULT.FAILED)
+                        {
+                            var fhs = db.FHSImports.Where(f => f.UniqueId == model.UniqueId && f.ResultCode == DATA_IMPORT_RESULT.FAILED).Select(f=>f.Id).FirstOrDefault();
+                            if (fhs <= 0)
+                                db.FHSImports.Add(dtImport);
+                            else
+                            {
+                                dtImport.Id = fhs;
+                                //db.FHSImports.Attach(dtImport);
+                                db.Entry(dtImport).State = EntityState.Modified;
+                            }
+                        }
                         db.SaveChanges();
                         return Ok(result);
 
@@ -238,17 +251,21 @@ namespace Megatech.FMS.WebAPI.Controllers
                             AircraftType = model.AircraftType,
                             FlightType = model.IsInternational ? FLIGHT_TYPE.OVERSEA : FLIGHT_TYPE.DOMESTIC,
                             RefuelScheduledTime = model.RefuelScheduledTime,
+
                             ArrivalScheduledTime = model.ArrivalTime,
                             DepartureScheduledTime = model.DepartureTime,
                             Airline = airline,
                             AirportId = model.AirportId,
+                            IsOutRefuel = true,
+                            CreatedLocation = FLIGHT_CREATED_LOCATION.FHS,
                             RefuelItems = new List<RefuelItem>()
                         };
 
                         db.Flights.Add(flight);
 
                     }
-
+                    else
+                        flight.IsOutRefuel = true;
 
                     //save flight OK, create receipt
 
@@ -401,7 +418,8 @@ namespace Megatech.FMS.WebAPI.Controllers
                                 Price = price,
                                 Unit = unit,
                                 Currency = currency,
-                                Status = REFUEL_ITEM_STATUS.DONE
+                                Status = REFUEL_ITEM_STATUS.DONE,
+                                CreatedLocation = ITEM_CREATED_LOCATION.FHS
 
                             };
                             flight.RefuelItems.Add(refuelItem);
@@ -518,8 +536,9 @@ namespace Megatech.FMS.WebAPI.Controllers
             Size thumbnailSize = GetThumbnailSize(img);
             Image thumbnail = img.GetThumbnailImage(thumbnailSize.Width, thumbnailSize.Height, null, IntPtr.Zero);
 
-            thumbnail.Save(Path.Combine(folderPath, fileName), ImageFormat.Jpeg);
-            //ms.Close();
+            img.Save(Path.Combine(folderPath, fileName), ImageFormat.Jpeg);
+           
+            ms.Close();
 
             Logger.AppendLog("RECEIPT", "Save OK " + fileName, "fhs");
 

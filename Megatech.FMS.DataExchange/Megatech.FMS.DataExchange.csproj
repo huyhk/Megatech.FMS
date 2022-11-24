@@ -74,6 +74,8 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="Exporter.cs" />
     <Compile Include="ExtractExportModel.cs" />
+    <Compile Include="FlightImporter.cs" />
+    <Compile Include="FlightImportModel.cs" />
     <Compile Include="InventoryExporter.cs" />
     <Compile Include="InventoryExportModel.cs" />
     <Compile Include="InvoiceCancelModel.cs" />

@@ -132,6 +132,9 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Transactions">
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Web.Entity" />
     <Reference Include="System.Web.ApplicationServices" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
@@ -305,6 +308,7 @@
     <Compile Include="Controllers\InvoiceController.cs" />
     <Compile Include="Controllers\ReceiptsController.cs" />
     <Compile Include="Controllers\RefuelsController.cs" />
+    <Compile Include="Controllers\ScreenshotController.cs" />
     <Compile Include="Controllers\ShiftController.cs" />
     <Compile Include="Controllers\TabletsController.cs" />
     <Compile Include="Controllers\TrucksController.cs" />

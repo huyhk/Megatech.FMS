@@ -28,7 +28,8 @@ namespace Megatech.FMS.WebAPI.Controllers
         private DataContext db = new DataContext();
 
         // GET: api/Receipts
-        public IQueryable<Receipt> GetReceipts()
+        [Route("api/receipts/{truckId}/{date}")]
+        public IQueryable<Receipt> GetReceipts(int truckId, DateTime? date)
         {
             return db.Receipts;
         }
@@ -64,6 +65,15 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                     Items = new List<ReceiptItemModel>()
                 };
+
+                ///process flighttype
+                var routes = model.RouteName.Split(new char[] { '-', '_', ' ' });
+                if (routes.Length > 1)
+                {
+                    var toAirport = routes[1];
+                    
+                }
+
                 foreach (var item in model.Items)
                 {
                     receipt.Items.Add(new ReceiptItemModel
@@ -428,7 +438,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                     model.PdfImageString = Convert.ToBase64String(bytes, 0, bytes.Length);
                 }
                 Logger.AppendLog("RECEIPT", "OK", "receipt-create");
-                var receipt = ReceiptModel.SaveReceipt(model);
+                var receipt = ReceiptModel.SaveReceipt(model, null, null);
                 Logger.AppendLog("RECEIPT", "Save OK", "receipt-create");
 
 
@@ -563,260 +573,26 @@ namespace Megatech.FMS.WebAPI.Controllers
             try
             {
                 Logger.AppendLog(ticks, "Save Receipt # " + receipt.Number, "receipt");
-                var model = db.Receipts.FirstOrDefault(re =>re.Number == receipt.Number);
+                var model = db.Receipts.FirstOrDefault(re =>re.Number == receipt.Number && re.IsReuse == receipt.IsReuse);
                 if (model != null)
                 {
                     Logger.AppendLog(ticks, $"Receipt # {receipt.Number} existed", "receipt");
                     Logger.AppendLog(ticks, $"Model.StartTime {model.StartTime} Receipt.StartTime {receipt.StartTime} Model.Gallon {model.Gallon} Receipt.Gallon {receipt.Gallon}", "receipt");
-                    //receipt.Id = model.Id;
-                }
-                /*
-                if ((model == null && !receipt.IsCancelled || receipt.Overwrite))
-                {
-                    model = new Receipt
-                    {
-                        UserCreatedId = userId,
-
-                        Number = receipt.Number,
-                        Date = receipt.Date.Date,
-                        InvoiceSplit = receipt.InvoiceSplit,
-                        SplitAmount = receipt.SplitAmount,
-
-                        ReturnAmount = receipt.ReturnAmount,
-                        DefuelingNo = receipt.DefuelingNo,
-
-                        Gallon = Math.Round(receipt.Gallon,MidpointRounding.AwayFromZero),
-                        Volume = Math.Round(receipt.Volume, MidpointRounding.AwayFromZero),
-                        Weight = Math.Round(receipt.Weight, MidpointRounding.AwayFromZero),
-
-                        StartTime = receipt.StartTime,
-                        EndTime = receipt.EndTime,
-                        CustomerId = receipt.CustomerId,
-                        CustomerName = receipt.CustomerName,
-                        CustomerCode = receipt.CustomerCode,
-                        CustomerType = receipt.CustomerType,
-                        TaxCode = receipt.TaxCode,
-                        CustomerAddress = receipt.CustomerAddress,
-                        RouteName = receipt.RouteName,
-
-
-                        FlightId = receipt.FlightId,
-                        AircraftCode = receipt.AircraftCode,
-                        AircraftType = receipt.AircraftType,
-                        FlightCode = receipt.FlightCode,
-                        FlightType = receipt.FlightType,
-                        IsReturn = receipt.IsReturn,
-                        TechLog = receipt.TechLog,
-                        ReplaceNumber = receipt.ReplaceNumber,
-                        Items = new List<ReceiptItem>()
-                    };
-
-                    foreach (var item in receipt.Items)
-                    {
-                        var guid = Guid.Parse(item.RefuelItemId);
-                        var refuelItem = db.RefuelItems.Include(re =>re.Truck).Include(re =>re.Flight)
-                            .Where(re =>re.UniqueId == guid && re.TruckId == item.TruckId).FirstOrDefault();
-
-                        if (refuelItem == null && item.RefuelId > 0)
-                            refuelItem = db.RefuelItems.Include(re =>re.Truck).Include(re =>re.Flight)
-                           .Where(re =>re.Id == item.RefuelId && re.TruckId == item.TruckId).FirstOrDefault();
-
-                        var modelItem = new ReceiptItem
-                        {
-                            RefuelId = refuelItem?.Id,
-                            RefuelUniqueId = guid,
-                            TruckId = item.TruckId,
-                            //Truck = refuelItem?.Truck,
-                            StartTime = item.StartTime,
-                            EndTime = item.EndTime,
-                            StartNumber = item.StartNumber,
-                            EndNumber = item.EndNumber,
-                            Temperature = item.Temperature,
-                            Density = item.Density,
-                            Gallon = Math.Round(item.Gallon,MidpointRounding.AwayFromZero),
-                            Volume = Math.Round(item.Volume, MidpointRounding.AwayFromZero),
-                            Weight = Math.Round(item.Weight, MidpointRounding.AwayFromZero),
-                            QualityNo = item.QualityNo,
-                            OperatorId = item.OperatorId.HasValue && item.OperatorId > 0 ? item.OperatorId : refuelItem?.OperatorId,
-                            DriverId = item.DriverId.HasValue && item.DriverId > 0 ? item.DriverId : refuelItem?.DriverId
-                        };
-                        item.Gallon = modelItem.Gallon;
-                        item.Volume = modelItem.Volume;
-                        item.Weight = modelItem.Weight;
-                        model.Items.Add(modelItem);
-
-                        if (refuelItem == null)
-                            Logger.AppendLog(ticks, "null refuel item " + guid.ToString(), "receipt");
-                        if (model.FlightId == 0 && refuelItem != null)
-                        {
-                            Logger.AppendLog(ticks, "flight id " + refuelItem.FlightId.ToString(), "receipt");
-                            //find the flight 
-                            model.Flight = refuelItem.Flight;
-                        }
-
-
-                        Truck truck = db.Trucks.FirstOrDefault(t => t.Id == item.TruckId);
-                        if (truck != null)
-                            model.RefuelCompany = truck.RefuelCompany;
-
-                        if (refuelItem != null && !receipt.IsReturn)
-                            refuelItem.Receipt = model;
-
-
-                    }
-
-                    if (receipt.PdfImageString != null)
-                    //model.Image = Convert.FromBase64String(receipt.PdfImageString);
-                    {
-                        //model.Image = Convert.FromBase64String(receipt.PdfImageString);
-
-                        SaveImage(receipt.PdfImageString, model.Number + ".jpg", folderPath);
-                        model.ImagePath = model.Number + ".jpg";
-                    }
-                    if (receipt.SignImageString != null)
-                    {
-                        SaveImage(receipt.SignImageString, model.Number + "_BUYER.jpg", folderPath);
-                        model.SignaturePath = model.Number + "_BUYER.jpg";
-
-                        //model.Signature = Convert.FromBase64String(receipt.SignImageString);
-                        //receipt.Signature = model.Signature;
-                        //receipt.Signature =  Convert.FromBase64String(receipt.SignImageString);
-                    }
-
-                    if (model.SignaturePath!=null && File.Exists(Path.Combine(folderPath, model.SignaturePath)))
-                        receipt.Signature = File.ReadAllBytes(Path.Combine(folderPath, model.Number + "_BUYER.jpg"));// Convert.FromBase64String(receipt.SellerImageString);
-
-                    if (receipt.SellerImageString != null)
-                    {
-                        SaveImage(receipt.SellerImageString, model.Number + "_SELLER.jpg", folderPath);
-                        model.SellerPath = model.Number + "_SELLER.jpg";
-
-                        //model.SellerImage = Convert.FromBase64String(receipt.SellerImageString);
-                        //receipt.SellerSignature = model.SellerImage;
-
-                    }
-
-
-                    if (model.SellerPath !=null &&File.Exists(Path.Combine(folderPath, model.SellerPath)))
-                        receipt.SellerSignature = File.ReadAllBytes(Path.Combine(folderPath, model.Number + "_SELLER.jpg"));// Convert.FromBase64String(receipt.SellerImageString);
-
-                    //create pdf
-                    if (model.IsFHS && receipt.PdfImageString == null)
-                    {
-                        var imgIn = receipt.CreateReceiptImage();
-                        using (var ms = new MemoryStream())
-                        {
-                            imgIn.Save(ms, ImageFormat.Jpeg);
-                            //model.Image = ms.ToArray();
-                            SaveImage(ms.ToArray(), model.Number + ".jpg", folderPath);
-                            model.ImagePath = model.Number + ".jpg";
-                        }
-                        //imgIn.Save(Path.Combine(HostingEnvironment.MapPath("~/logs/"), model.Number + ".jpg"), ImageFormat.Jpeg);
-                    }
-
-
-
-                    db.Receipts.Add(model);
-
-
-                    //db.SaveChanges();
-
-                    ///create invoices
-                    /// 
-                    if (db.SaveChanges() > 0)
-                    {
-                        Logger.AppendLog(ticks, "Save receipt OK " + model.Number , "receipt");
-                        model = db.Receipts.Include(re =>re.Items.Select(iv => iv.Truck)).Include(re =>re.Flight.Airline).Include(re =>re.Flight.Airport).FirstOrDefault(re =>re.Id == model.Id);
-                        //Logger.AppendLog(ticks, "Invoice Type " + ((bool)model.Flight.Airline.DomesticInvoice).ToString(), "receipt");
-
-                        var price = 0.0M;
-                        var currency = CURRENCY.VND;
-                        var unit = UNIT.GALLON;
-
-                        //var exRate = 1.0M;
-                        var exRate = db.ProductPrices.Where(p => p.StartDate <= model.EndTime && p.Currency == CURRENCY.USD)
-                            .OrderByDescending(p => p.StartDate).Select(p => p.ExchangeRate)
-                            .FirstOrDefault();
-
-                        var airport = db.Airports.FirstOrDefault(a => a.Id == model.Flight.AirportId);
-
-                        var refuelCompany = model.Items.Select(mi => mi.Truck.RefuelCompany).FirstOrDefault();
-                        var depotType = (receipt.IsFHS ?? false) ? 4 : airport.DepotType;
-                        var airlineType = db.Airlines.Where(a => a.Id == model.CustomerId).Select(a => a.AirlineType).FirstOrDefault() ?? 0;
-                        var flightType = model.FlightType ?? (int)model.Flight.FlightType;
-
-
-                        var prices = (from p in db.ProductPrices.Include(p => p.Product)
-                                      where p.StartDate <= model.EndTime
-                                      //&& p.BranchId == (int) airport.Branch// && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch
-                                      group p by new { p.CustomerId, p.AirlineType, p.BranchId, p.DepotType, p.Unit }
-                             into groups
-                                      select groups.OrderByDescending(g => g.StartDate).FirstOrDefault()).ToList();
-
-                        var pPrice = prices.OrderByDescending(p => p.StartDate)
-                                                            .FirstOrDefault(p => p.AirlineType == flightType && p.CustomerId == model.Flight.AirlineId);
-                        if (pPrice == null && airlineType == (int)CUSTOMER_TYPE.LOCAL)
-                        {
-                            pPrice = prices.OrderByDescending(p => p.StartDate)
-                                                            .FirstOrDefault(p =>  p.CustomerId == model.Flight.AirlineId);
-                            if (pPrice == null)
-                                pPrice = new ProductPrice { Currency = CURRENCY.VND , Unit = (int)UNIT.GALLON};
-                        }
-                        if (pPrice == null)
-                            pPrice = prices.OrderByDescending(p => p.StartDate)
-                        .FirstOrDefault(p => p.AirlineType == (flightType == (int)FLIGHT_TYPE.OVERSEA ? 1 : 0) && ( p.DepotType == depotType && p.BranchId == (int)airport.Branch));
-
-                        if (pPrice != null)
-                        {
-                            price = pPrice.Price;
-                            currency = pPrice.Currency;
-                            unit = unit = pPrice.Unit == 0 ? UNIT.GALLON : UNIT.KG;
-                        }
-
-                        //Logger.AppendLog("RECEIPT", string.Format("refuel company: {0}, pPrice.price :{1}",refuelCompany, price),"receipt");
-
-                        var invoices = model.CreateInvoices();
-
-
-                        foreach (var item in invoices)
-                        {
-                            item.RefuelCompany = refuelCompany;
-                            item.Price = price;
-                            item.Currency = currency;
-                            item.ExchangeRate = currency == CURRENCY.USD ? exRate : 1.0M;
-                            item.Unit = unit;
-
-                            item.Gallon = item.Items.Sum(m => m.Gallon);
-                            item.Volume = (decimal)item.Items.Sum(m => m.Volume);
-                            item.Weight = (decimal)item.Items.Sum(m => m.Weight);
-                            item.TaxRate = model.Flight.FlightType == FLIGHT_TYPE.DOMESTIC ? 0.1M : 0;
-                            item.SaleAmount = Math.Round((decimal)item.Price * (item.Unit == UNIT.GALLON ? item.Gallon : item.Weight), item.Currency == CURRENCY.USD ? 2 : 0, MidpointRounding.AwayFromZero);
-                            item.TotalAmount = item.SaleAmount + item.TaxAmount;
-                            item.ReceiptId = model.Id;
-
-                            if (!string.IsNullOrEmpty(model.ReplaceNumber))
-                            {
-                                //find old invoices
-                                item.ReplaceInvoice = db.Invoices.FirstOrDefault(iv => iv.BillNo == model.ReplaceNumber);
-                }
-                        }
-
-                        db.Invoices.AddRange(invoices);
-                        //model.Invoices.AddRange(invoices);
-
-                        db.SaveChanges();
-                        Logger.AppendLog(ticks, "Save invoice OK " + model.Number , "receipt");
-                    }
-                    else
-                        Logger.AppendLog(ticks, "Save receipt failed " + model.Number , "receipt");
-                }
-
-                db.Database.CurrentTransaction.Commit();
-                */
-                if (model != null && receipt.ReplacedId == null &&  model.StartTime == receipt.StartTime)
                     receipt.Id = model.Id;
-                else
-                    receipt = ReceiptModel.SaveReceipt(receipt,ticks);
+                }
+               
+
+                //process route and flight type
+                var routes = receipt.RouteName.Split(new char[] { '-', ' ' });
+                if (routes.Length > 1)
+                { 
+                    
+                }
+
+                if (model != null && receipt.ReplacedId == null)
+                    receipt.Id = model.Id;
+                else 
+                    receipt = ReceiptModel.SaveReceipt(receipt,ticks, userId);
                 //if (receipt.IsCancelled && model != null)
                 //{
                 //    Logger.AppendLog("INV", "Cancel invoice Reason:" + receipt.CancelReason, "invoice");

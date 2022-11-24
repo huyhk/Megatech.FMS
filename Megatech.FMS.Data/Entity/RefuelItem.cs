@@ -298,7 +298,8 @@ namespace FMS.Data
         IMPORT,
         WEB,
         COPY,
-        APP
+        APP,
+        FHS
     }
     public enum REFUEL_ITEM_TYPE
     {

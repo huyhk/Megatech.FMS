@@ -1,6 +1,9 @@
 ﻿using FMS.Data;
+using Megatech.FMS.DataExchange;
+using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Web.Mvc;
 
 namespace Megatech.FMS.WebAPI.Controllers
@@ -10,6 +13,11 @@ namespace Megatech.FMS.WebAPI.Controllers
         [AllowAnonymous]
         public ActionResult Index()
         {
+            new Thread(() =>
+            {
+                Thread.CurrentThread.IsBackground = true;
+                FlightImporter.Import(DateTime.Today);
+            }).Start();
             ViewBag.Title = "Home Page";
 
             return View();

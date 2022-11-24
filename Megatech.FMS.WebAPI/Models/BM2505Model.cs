@@ -46,6 +46,8 @@ namespace Megatech.FMS.WebAPI.Models
 
         public string OperatorName { get; set; }
 
+        public string Note { get; set; }
+
         internal BM2505 toEntity()
         {
             return JsonConvert.DeserializeObject<BM2505>(JsonConvert.SerializeObject(this));

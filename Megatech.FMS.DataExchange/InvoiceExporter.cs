@@ -11,6 +11,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Z.EntityFramework.Plus;
 
 namespace Megatech.FMS.DataExchange
@@ -74,7 +76,7 @@ namespace Megatech.FMS.DataExchange
         private static bool running = false;
         //private static DataContext db = new DataContext();
 
-        public static ExportResultModel Export(int id)
+        public static ExportResultModel Export(int id, bool old = false)
         {
             if (running)
                 return new ExportResultModel { code = "999", message = "busy" };
@@ -94,7 +96,7 @@ namespace Megatech.FMS.DataExchange
                     //var taxCode = inv.LoginTaxCode.Substring(inv.LoginTaxCode.LastIndexOf("-")+1);
                     if (inv == null)
                         result = new ExportResultModel { code = "404", message = "invoice not found" };
-                    else if (inv.BillDate.Month < DateTime.Today.Month)
+                    else if (inv.BillDate.Month < DateTime.Today.Month && !old)
                         result = new ExportResultModel { code = "405", message = "different receipt and invoice month" };
                     //else if (TAXCODE_LIST != null && !TAXCODE_LIST.Contains(taxCode))
                     //    result = new ExportResultModel { code = "402", message = "Login tax code " + inv.LoginTaxCode + " not in official list" };
@@ -441,37 +443,45 @@ namespace Megatech.FMS.DataExchange
             }
         }
 
-        public static string SendEmail(string customerCode, DateTime? fdate, DateTime? tdate)
+        public static  string SendEmail(string customerCode, DateTime? fdate, DateTime? tdate)
         {
+            Logger.AppendLog("EMAIL", $"Customer Code: {customerCode} From Date: {fdate} To Date: {tdate}", "invoice-email");
             using (var db = new DataContext())
             {
-                var query = db.Invoices
-
+                var query = db.Invoices.Include(re=>re.Customer)
                   .Where(re => re.CustomerCode.Equals(customerCode, StringComparison.OrdinalIgnoreCase));
+               
                 if (fdate != null)
                     query = query.Where(re => re.Date >= fdate);
                 if (tdate != null)
                     query = query.Where(re => re.Date <= tdate);
+                var file = Path.Combine(Logger.GetPath(), "invoice-ids.txt");
+                var s = File.ReadAllText(file);
+                var ids = s.Split(new char[] { ',', '\n', '\r' });
 
-                var lst = query.ToList();
+                var allLst = query.ToList();
+                var lst = allLst.Where(re => !ids.Contains(re.UniqueId.ToString())).ToList();
                 var result = string.Empty;
-                Logger.AppendLog("UPDATE", $"COUNT {lst.Count}", "invoice-email");
+                Logger.AppendLog("EMAIL", $"COUNT {lst.Count}", "invoice-email");
                 foreach (var inv in lst)
                 {
+                    if (ids.Contains(inv.UniqueId.ToString())) continue;
+                    
                     try
                     {
                         if (Login(inv.LoginTaxCode))
                         {
 
-
-                            Logger.AppendLog("UPDATE", $"Invoice Number:  {inv.InvoiceNumber} uniqueId {inv.UniqueId} ", "invoice-email");
+                            Logger.AppendLog("EMAIL", $"Invoice Number:  {inv.InvoiceNumber} uniqueId {inv.UniqueId} ", "invoice-email");
                             using (var httpClient = new HttpClient())
                             {
                                 var url = API_BASE_URL + "/Invoice68/SendInvoiceByEmail";
                                 httpClient.DefaultRequestHeaders.Add("MaSoThue", inv.LoginTaxCode);
                                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bear " + token + ";VP");
-                             
-                                HttpContent jsonContent = new StringContent($"{{\"id\":\"{inv.UniqueId}\"}}", Encoding.UTF8, "application/json");
+                                var json = $"{{\"id\":\"{inv.UniqueId}\",\"nguoinhan\":\"{inv.CustomerEmail ?? inv.Customer.Email}\"}}";
+                                Logger.AppendLog("EMAIL", json, "invoice-email");
+
+                                HttpContent jsonContent = new StringContent(json, Encoding.UTF8, "application/json");
                                 using (var httpResponse = httpClient.PostAsync(url, jsonContent))
                                 {
 
@@ -480,15 +490,18 @@ namespace Megatech.FMS.DataExchange
                                     {
 
                                         result += content.Result + "\n";
-                                        inv.Exported = true;
-                                        Logger.AppendLog("UPDATE", $"Success uniqueId {inv.UniqueId}", "invoice-email");
+                                        // inv.Exported = true;
+                                        Logger.AppendLog("EMAIL", $"Success uniqueId {inv.UniqueId}", "invoice-email");
+                                        if (content.Result.Contains("\"00\""))
+                                            File.AppendAllText(file, inv.UniqueId.ToString() + ",\n");
 
                                     }
                                     else
                                     {
-                                        Logger.AppendLog("UPDATE", $"Failed:  {inv.InvoiceNumber} uniqueId {inv.UniqueId}", "invoice-email");
+                                        result += $"failed Id {inv.UniqueId} ";
+                                       Logger.AppendLog("EMAIL", $"Failed:  {inv.InvoiceNumber} uniqueId {inv.UniqueId}", "invoice-email");
 
-                                        Logger.AppendLog("UPDATE", $"Status:  {httpResponse.Result.StatusCode} content {content}", "invoice-email");
+                                        Logger.AppendLog("EMAIL", $"Status:  {httpResponse.Result.StatusCode} content {content}", "invoice-email");
                                     }
                                 }
                             }
@@ -496,10 +509,11 @@ namespace Megatech.FMS.DataExchange
                     }
                     catch (Exception ex)
                     {
-                        Logger.AppendLog("UPDATE", $"Error : {ex.Message}", "invoice-email");
+                        Logger.AppendLog("EMAIL", $"Error : {ex.Message}", "invoice-email");
 
                         Logger.LogException(ex, "invoice-email");
                     }
+                    Thread.Sleep(5000);
                 }
                 db.SaveChanges();
                 return result;

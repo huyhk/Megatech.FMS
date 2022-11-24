@@ -30,10 +30,10 @@ namespace Megatech.FMS.WebAPI.Controllers
         }
 
         [Route("api/export/invoice/{id}")]
-        public IHttpActionResult PostInvoice(int id)
+        public IHttpActionResult PostInvoice(int id,bool old = false)
         {
             Logger.SetPath(HostingEnvironment.MapPath("~/logs"));
-            var resp = InvoiceExporter.Export(id);
+            var resp = InvoiceExporter.Export(id,old);
             if (resp.success)
                 resp = InventoryExporter.Export(id);
             return Ok(resp);

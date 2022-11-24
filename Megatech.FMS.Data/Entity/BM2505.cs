@@ -45,5 +45,7 @@ namespace FMS.Data
 
         public User Operator { get; set; }
 
+        public string  Note { get; set; }
+
     }
 }

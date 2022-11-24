@@ -11,6 +11,10 @@ namespace Megatech.FMS.Logging
         {
             logFolder = folder;
         }
+        public static string GetPath()
+        {
+            return logFolder;
+        }
         public static void AppendLog(string tag, string log)
         {
             AppendLog(tag, log, "post");
