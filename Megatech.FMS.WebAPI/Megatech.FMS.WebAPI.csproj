@@ -304,7 +304,6 @@
     <Compile Include="Controllers\InvoiceFormController.cs" />
     <Compile Include="Controllers\BM2505Controller.cs" />
     <Compile Include="Controllers\FHSController.cs" />
-    <Compile Include="Controllers\LogController.cs" />
     <Compile Include="Controllers\InvoiceController.cs" />
     <Compile Include="Controllers\ReceiptsController.cs" />
     <Compile Include="Controllers\RefuelsController.cs" />
@@ -328,6 +327,7 @@
     <Compile Include="Models\InvoiceFormModel.cs" />
     <Compile Include="Models\InvoiceModel.cs" />
     <Compile Include="Models\FlightViewModel.cs" />
+    <Compile Include="Models\TruckLogModel.cs" />
     <Compile Include="Models\ManualReceiptModel.cs" />
     <Compile Include="Models\PermissionViewModel.cs" />
     <Compile Include="Models\PostExtractModel.cs" />

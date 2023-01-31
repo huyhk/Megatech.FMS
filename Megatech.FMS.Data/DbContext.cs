@@ -62,9 +62,9 @@ namespace FMS.Data
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
 
-            modelBuilder.Entity<BM2505>().Property(o => o.Density).HasPrecision(18, 4);
+            //modelBuilder.Entity<BM2505>().Property(o => o.Density).HasPrecision(18, 4);
 
-            modelBuilder.Entity<BM2505>().Property(o => o.Density15).HasPrecision(18, 4);
+            //modelBuilder.Entity<BM2505>().Property(o => o.Density15).HasPrecision(18, 4);
 
 
             modelBuilder.Filter("IsNotDeleted", (BaseEntity entity) => entity.IsDeleted, false);
@@ -114,6 +114,7 @@ namespace FMS.Data
 
             modelBuilder.Entity<BM2505>().Property(o => o.Density).HasPrecision(18, 4);
             modelBuilder.Entity<BM2505>().Property(o => o.Density15).HasPrecision(18, 4);
+            modelBuilder.Entity<BM2505>().Property(o => o.DensityDiff).HasPrecision(18, 4);
 
             modelBuilder.Entity<User>()
                .HasMany<Airport>(s => s.Airports)
@@ -141,6 +142,11 @@ namespace FMS.Data
         public System.Data.Entity.DbSet<FMS.Data.Receipt> Receipts { get; set; }
 
         public DbSet<FHSImport> FHSImports { get; set; }
+
+        public DbSet<TruckLog> TruckLog { get; set; }
+
+
+        public DbSet<Review> Reviews { get; set; }
 
         public void ClearChanges()
         {

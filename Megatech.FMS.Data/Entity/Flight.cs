@@ -118,6 +118,10 @@ namespace FMS.Data
 
         public string LegUpdateNo { get; set; }
         public bool? IsOutRefuel { get; set; }
+
+
+        public IList<Review> Reviews { get; set; }
+
     }
     public class AmountReport
     {

@@ -335,7 +335,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                     //Logger.AppendLog("import", string.Format("flight type {0} depotType {1} branch {2}",flightType,depotType, airport.Branch), "fhs");
                     if (pPrice == null)
                         pPrice = prices.OrderByDescending(p => p.StartDate)
-                    .FirstOrDefault(p => p.AirlineType == (flightType == (int)FLIGHT_TYPE.OVERSEA ? 1 : 0) && (p.DepotType == depotType && p.BranchId == (int)airport.Branch));
+                    .FirstOrDefault(p => p.CustomerId == null &&  p.AirlineType == (flightType == (int)FLIGHT_TYPE.OVERSEA ? 1 : 0) && (p.DepotType == depotType && p.BranchId == (int)airport.Branch));
 
                     if (pPrice != null)
                     {

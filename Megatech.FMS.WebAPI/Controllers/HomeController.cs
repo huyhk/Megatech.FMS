@@ -13,11 +13,7 @@ namespace Megatech.FMS.WebAPI.Controllers
         [AllowAnonymous]
         public ActionResult Index()
         {
-            new Thread(() =>
-            {
-                Thread.CurrentThread.IsBackground = true;
-                FlightImporter.Import(DateTime.Today);
-            }).Start();
+           
             ViewBag.Title = "Home Page";
 
             return View();

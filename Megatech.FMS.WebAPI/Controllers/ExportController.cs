@@ -29,14 +29,12 @@ namespace Megatech.FMS.WebAPI.Controllers
             return Ok();
         }
 
-        [Route("api/export/invoice/{id}")]
-        public IHttpActionResult PostInvoice(int id,bool old = false)
+        [Route("api/export/invoice")]
+        public IHttpActionResult PostInvoice(ExportOption  option)
         {
             Logger.SetPath(HostingEnvironment.MapPath("~/logs"));
-            var resp = InvoiceExporter.Export(id,old);
-            if (resp.success)
-                resp = InventoryExporter.Export(id);
-            return Ok(resp);
+            var result = Exporter.ExportInvoice(option);
+            return Ok(result);
         }
 
         [Route("api/export/invoice/cancel/{id}")]

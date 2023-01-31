@@ -73,8 +73,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                     receipt_v2 = false;
             }
             else receipt_v2 = false;
-            if (!truckCode.IsNullOrEmpty())
-                Logger.AppendLog("MODIFIED", $"Receipt Version 2: {receipt_v2}", truckCode);
+          
 
             using (var db = new DataContext())
             using (var trans = db.Database.BeginTransaction(IsolationLevel.ReadUncommitted))
@@ -90,6 +89,7 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                 var airport = db.Airports.FirstOrDefault(a => a.Id == airportId);
                 //if (lastModified >= DateTime.Today)
+               
                 db.DisableFilter("IsNotDeleted");
                 db.Database.CommandTimeout = 180;
                 db.Configuration.ProxyCreationEnabled = false;
@@ -100,6 +100,8 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                 if (lastModified == null)
                     lastModified = DateTime.Today.AddDays(-1);
+                else
+                    lastModified = lastModified.Value.AddDays(-1);
 
                 query = query.Where(r => r.DateUpdated > lastModified ||
                                 (r.DateDeleted > lastModified) || r.Flight.DateUpdated > lastModified ||
@@ -194,7 +196,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                         var price = prices.OrderByDescending(p => p.StartDate).FirstOrDefault(p => p.CustomerId == item.AirlineId);
                         if (price == null)
                             price = prices.OrderByDescending(p => p.StartDate)
-                                .FirstOrDefault(p => p.AirlineType == (int)item.FlightType && p.BranchId == (int)airport.Branch && p.DepotType == airport.DepotType && p.Unit == (int)item.Unit && item.AirlineType == 1);
+                                .FirstOrDefault(p => p.CustomerId == null && p.AirlineType == (int)item.FlightType && p.BranchId == (int)airport.Branch && p.DepotType == airport.DepotType && p.Unit == (int)item.Unit && item.AirlineType == 1);
                         if (price == null)
                             price = prices.OrderByDescending(p => p.StartDate).FirstOrDefault(p => p.StartDate <= DateTime.Now && p.Unit == (int)item.Unit && item.AirlineType == 0);
 

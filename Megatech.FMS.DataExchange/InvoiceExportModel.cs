@@ -11,11 +11,14 @@ namespace Megatech.FMS.DataExchange
 
         public InvoiceJsonData()
         { }
-        public InvoiceJsonData(Invoice inv)
+        public InvoiceJsonData(Invoice inv, ExportOption option = null)
         {
             data = new List<InvoiceExportModel>();
-            data.Add(new InvoiceExportModel(inv));
-            sign_type = inv.SignType != null ? (int)inv.SignType : (inv.Price == 0 ? 3 : 1);
+            data.Add(new InvoiceExportModel(inv, option));
+            
+            sign_type = inv.SignType != null ? (int)inv.SignType : (inv.Price == 0  || ( inv.FlightType == FLIGHT_TYPE.DOMESTIC && inv.CustomerType == CUSTOMER_TYPE.INTERNATIONAL )? 3 : 1);
+            if (option != null && option.sign_type != null)
+                sign_type = (int)option.sign_type;
         }
         public string tab_masters { get; set; } = "hoadon68";
         public int editmode { get; set; } = 1;
@@ -26,7 +29,9 @@ namespace Megatech.FMS.DataExchange
     public class InvoiceExportModel
     {
         private static string EMAIL_LIST = ConfigurationManager.AppSettings["AITS_EMAIL_LIST"];
-        public InvoiceExportModel(Invoice inv)
+       
+        public InvoiceExportModel(Invoice inv, ExportOption option = null)
+
         {
             try
             {
@@ -365,5 +370,15 @@ namespace Megatech.FMS.DataExchange
         public DateTime? tdlap { get; set; }
 
         public string hoadon68_id { get; set; }
+    }
+
+
+    public class ExportOption
+    {
+        public DateTime date { get; set; }
+        public int khieu { get; set; }
+        public  string ccid { get; set; }
+        public int? sign_type { get;  set; }
+        public INVOICE_TYPE? invoice_type { get;  set; }
     }
 }

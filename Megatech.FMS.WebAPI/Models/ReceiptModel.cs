@@ -303,7 +303,12 @@ namespace Megatech.FMS.WebAPI.Models
                 try
                 {
                     var number = receipt.Number;
-                    var model = db.Receipts.FirstOrDefault(r => r.Number == number && r.IsReuse == receipt.IsReuse );
+                    var uniqueId = (!string.IsNullOrEmpty(receipt.UniqueId)) ? Guid.Parse(receipt.UniqueId) : Guid.Empty;
+                    var model = db.Receipts.FirstOrDefault(r => r.Number == number && r.UniqueId == uniqueId );
+
+                    var reuse = db.Receipts.Count(re => re.Number == "23001CLS");
+                    var cReuse = (reuse + 1).ToString();
+
                     if (model != null)
                         Logger.AppendLog("RECEIPT", $"Receipt number ${number} existed", "receipt");
 
@@ -340,9 +345,9 @@ namespace Megatech.FMS.WebAPI.Models
                             
                             IsReturn = receipt.IsReturn,
                             Manual = receipt.Manual,
-                            IsReuse = receipt.IsReuse,
+                            IsReuse =  receipt.IsReuse,
                             TechLog = receipt.TechLog,
-
+                            ReplacedId = number == "23001CLS"? (number+ cReuse): "",
                             Items = new List<ReceiptItem>()
                         };
                         if (!string.IsNullOrEmpty(receipt.UniqueId))
@@ -397,8 +402,8 @@ namespace Megatech.FMS.WebAPI.Models
 
                         if (receipt.PdfImageString != null)
                         {
-                            SaveImage(receipt.PdfImageString, model.Number + ".jpg", folderPath);
-                            model.ImagePath = model.Number + ".jpg";
+                            SaveImage(receipt.PdfImageString, model.Number + (model.Number == "23001CLS"?cReuse:"") + ".jpg", folderPath);
+                            model.ImagePath = model.Number + (model.Number == "23001CLS" ? cReuse : "") + ".jpg";
                         }
                             //model.Image = Convert.FromBase64String(receipt.PdfImageString);
                         if (receipt.SignImageString != null)
@@ -477,7 +482,7 @@ namespace Megatech.FMS.WebAPI.Models
 
                         if (pPrice == null)
                             pPrice = prices.OrderByDescending(p => p.StartDate)
-                        .FirstOrDefault(p => p.AirlineType == (flightType == (int)FLIGHT_TYPE.OVERSEA ? 1 : 0) && (p.Unit == (int)0 && p.DepotType == depotType && p.BranchId == (int)airport.Branch));
+                        .FirstOrDefault(p => p.CustomerId == null && p.AirlineType == (flightType == (int)FLIGHT_TYPE.OVERSEA ? 1 : 0) && (p.Unit == (int)0 && p.DepotType == depotType && p.BranchId == (int)airport.Branch));
 
                         if (pPrice != null)
                         {

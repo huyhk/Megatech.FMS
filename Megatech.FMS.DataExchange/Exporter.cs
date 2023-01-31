@@ -16,13 +16,13 @@ namespace Megatech.FMS.DataExchange
         private static bool TEST_EXPORT = ConfigurationManager.AppSettings["EINVOICE_EXPORT"] != null && ConfigurationManager.AppSettings["EINVOICE_EXPORT"].Equals("1");
         private static string TAXCODE_LIST = ConfigurationManager.AppSettings["EINVOICE_CODE_LIST"];
         private static DateTime lastCall;
-        public static void ExportInvoice()
+        public static object ExportInvoice(ExportOption  option = null)
         {
-            new Thread(() =>
-            {
-                Thread.CurrentThread.IsBackground = true;
-                FlightImporter.Import(DateTime.Today);
-            }).Start();
+            //new Thread(() =>
+            //{
+            //    Thread.CurrentThread.IsBackground = true;
+            //    FlightImporter.Import(DateTime.Today);
+            //}).Start();
 
 #if DEBUG
             TEST_EXPORT = true;
@@ -57,14 +57,28 @@ namespace Megatech.FMS.DataExchange
                         //    //Logger.AppendLog("AITS", "cancel id: " + item.ToString() + " result "+ result.code + " - " + result.message, "aits");
                         //}
                         var loginList = string.IsNullOrEmpty(TAXCODE_LIST) ? new string[0] : TAXCODE_LIST.Split(new char[] { ',', ';' });
-                        var lst = db.Invoices.Where(inv => !(true == (bool)inv.Exported_AITS) && inv.Items.Count > 0
-                        && DbFunctions.DiffDays(DateTime.Today, inv.BillDate) >-10 ).Select(inv => inv.Id).ToList();
+                        
+                        var query = db.Invoices.Where(inv => !(true == (bool)inv.Exported_AITS) && inv.Items.Count > 0
+                        && DbFunctions.DiffDays(DateTime.Today, inv.BillDate) > -10);
+
+                        if (option != null)
+                        {
+                            query = query.Where(inv => inv.Date == option.date);
+                            if (option.invoice_type != null)
+                                query = query.Where(inv => inv.InvoiceType == option.invoice_type);
+                        }
+
+                        var lst = query.Select(inv => inv.Id).ToList();
+
                         //Logger.AppendLog("AITS", "invoice list : " + TAXCODE_LIST, "aits");
+
                         Logger.AppendLog("AITS", "AITS list count:" + lst.Count.ToString(), "exporter");
 
+                        var success_count = 0;
                         foreach (var item in lst)
                         {
-                            var result = InvoiceExporter.Export(item);
+                            var result = InvoiceExporter.Export(item, option);
+                            success_count += result.success ? 1 : 0;
                             //if (!result.success)
                             //Logger.AppendLog("AITS", "result: " + result.code + " - " + result.message, "aits");
                         }
@@ -72,11 +86,14 @@ namespace Megatech.FMS.DataExchange
                         //Logger.AppendLog("OMEGA", "start scanning OMEGA " + running.ToString(), "aits");
                         var lstOMEGA = db.Invoices.Where(inv => inv.Date> thre && ((bool)inv.Exported_AITS && !(true == (bool)inv.Exported_OMEGA))).Select(inv => inv.Id).ToList();
                         Logger.AppendLog("OMEGA", "OMEGA list count:" + lstOMEGA.Count.ToString(), "exporter");
+
+                        
                         foreach (var item in lstOMEGA)
                         {
                             var result = InventoryExporter.Export(item);
 
                         }
+                        return new { item_count = lst.Count, success_count = success_count };
                     }
                     catch (Exception ex)
                     {
@@ -87,9 +104,11 @@ namespace Megatech.FMS.DataExchange
                         running = false;
                     }
                 }
-
+                
                 Logger.AppendLog("EXPORT", "=================== Auto run ended ===================", "exporter");
             }
+
+            return new { item_count = 0 };
         }
 
     }

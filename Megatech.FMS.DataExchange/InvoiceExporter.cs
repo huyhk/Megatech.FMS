@@ -76,7 +76,7 @@ namespace Megatech.FMS.DataExchange
         private static bool running = false;
         //private static DataContext db = new DataContext();
 
-        public static ExportResultModel Export(int id, bool old = false)
+        public static ExportResultModel Export(int id, ExportOption option = null)
         {
             if (running)
                 return new ExportResultModel { code = "999", message = "busy" };
@@ -96,7 +96,7 @@ namespace Megatech.FMS.DataExchange
                     //var taxCode = inv.LoginTaxCode.Substring(inv.LoginTaxCode.LastIndexOf("-")+1);
                     if (inv == null)
                         result = new ExportResultModel { code = "404", message = "invoice not found" };
-                    else if (inv.BillDate.Month < DateTime.Today.Month && !old)
+                    else if (inv.BillDate.Month < DateTime.Today.Month && option == null)
                         result = new ExportResultModel { code = "405", message = "different receipt and invoice month" };
                     //else if (TAXCODE_LIST != null && !TAXCODE_LIST.Contains(taxCode))
                     //    result = new ExportResultModel { code = "402", message = "Login tax code " + inv.LoginTaxCode + " not in official list" };
@@ -109,7 +109,7 @@ namespace Megatech.FMS.DataExchange
                         Logger.AppendLog("Export", "bill no: " + inv.BillNo, "aits");
                         if (Login(inv.LoginTaxCode))
                         {
-                            result = ExportInvoice(inv);
+                            result = ExportInvoice(inv, option);
 
                             if (result.success && result.data.hoadon68_id != null)
                             {
@@ -164,7 +164,7 @@ namespace Megatech.FMS.DataExchange
 
         }
 
-        internal static ExportResultModel ExportInvoice(Invoice inv)
+        internal static ExportResultModel ExportInvoice(Invoice inv, ExportOption option = null)
         {
             try
             {
@@ -172,7 +172,7 @@ namespace Megatech.FMS.DataExchange
                 var folderPath = AppDomain.CurrentDomain.BaseDirectory + "receipts";
                 if (!Directory.Exists(folderPath))
                     Directory.CreateDirectory(folderPath);
-                var json = JsonConvert.SerializeObject(new InvoiceJsonData(inv));
+                var json = JsonConvert.SerializeObject(new InvoiceJsonData(inv, option));
                 Logger.AppendLog("export", json, "export-data");
 
                 HttpClient client = new HttpClient();

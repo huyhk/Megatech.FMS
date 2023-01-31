@@ -1,5 +1,7 @@
 ﻿using FMS.Data;
+using Megatech.FMS.WebAPI.App_Start;
 using Megatech.FMS.WebAPI.Models;
+using Newtonsoft.Json;
 using System;
 using System.Linq;
 using System.Net.Http;
@@ -10,80 +12,84 @@ namespace Megatech.FMS.WebAPI.Controllers
 {
     public class BM2505Controller : ApiController
     {
-        private DataContext db = DataContext.GetInstance();
+        //private DataContext db = DataContext.GetInstance();
 
         [HttpPost]
         [Authorize]
         public IHttpActionResult Post(BM2505Model model)
         {
             ClaimsPrincipal principal = Request.GetRequestContext().Principal as ClaimsPrincipal;
-
+            Logger.AppendLog("BM2505", JsonConvert.SerializeObject(model), "bm2505");
             var userName = ClaimsPrincipal.Current.Identity.Name;
-
-            var user = db.Users.FirstOrDefault(u => u.UserName == userName);
-
-            if (ModelState.IsValid)
+            using (DataContext db = new DataContext())
             {
-                var entity = db.BM2505s.FirstOrDefault(bm => bm.Id == model.Id);
-                if (entity == null && model.Id > 0)
-                    return NotFound();
+                var user = db.Users.FirstOrDefault(u => u.UserName == userName);
 
-                else if (model.Id == 0)
+                if (ModelState.IsValid)
                 {
-                    entity = new BM2505
+                    var entity = db.BM2505s.FirstOrDefault(bm => bm.Id == model.Id);
+                    if (entity == null && model.Id > 0)
+                        return NotFound();
+
+                    else if (model.Id == 0)
                     {
-                        TruckId = model.TruckId,
-                        FlightId = model.FlightId,
-                        TankNo = model.TankNo,
-                        RTCNo = model.RTCNo,
-                        Temperature = model.Temperature,
-                        Density = model.Density,
-                        Density15 = model.Density15,
-                        AppearanceCheck = model.AppearanceCheck,
-                        DensityCheck = model.DensityCheck,
-                        WaterCheck = model.WaterCheck,
-                        PressureDiff = model.PressureDiff,
-                        HosePressure = model.HosePressure,
-                        OperatorId = model.OperatorId,
-                        Time = model.Time,
-                        Note = model.Note,
-                        IsDeleted = model.IsDeleted,
-                        UserCreatedId = user.Id,
-                        DateCreated = DateTime.Now,
-                        UserUpdatedId = user.Id,
-                        DateUpdated = DateTime.Now
+                        entity = new BM2505
+                        {
+                            TruckId = model.TruckId,
+                            FlightId = model.FlightId,
+                            TankNo = model.TankNo,
+                            RTCNo = model.RTCNo,
+                            Temperature = model.Temperature,
+                            Density = model.Density,
+                            Density15 = model.Density15,
+                            DensityDiff = model.DensityDiff,
+                            AppearanceCheck = model.AppearanceCheck,
+                            DensityCheck = model.DensityCheck,
+                            WaterCheck = model.WaterCheck,
+                            PressureDiff = model.PressureDiff,
+                            HosePressure = model.HosePressure,
+                            OperatorId = model.OperatorId,
+                            Time = model.Time,
+                            Note = model.Note,
+                            IsDeleted = model.IsDeleted,
+                            UserCreatedId = user.Id,
+                            DateCreated = DateTime.Now,
+                            UserUpdatedId = user.Id,
+                            DateUpdated = DateTime.Now
 
 
-                    };
-                    db.BM2505s.Add(entity);
+                        };
+                        db.BM2505s.Add(entity);
+                    }
+                    else
+                    {
+                        entity.TruckId = model.TruckId;
+                        entity.FlightId = model.FlightId;
+                        entity.TankNo = model.TankNo;
+                        entity.RTCNo = model.RTCNo;
+                        entity.Temperature = model.Temperature;
+                        entity.Density = model.Density;
+                        entity.Density15 = model.Density15;
+                        entity.DensityDiff = model.DensityDiff;
+                        entity.AppearanceCheck = model.AppearanceCheck;
+                        entity.DensityCheck = model.DensityCheck;
+                        entity.WaterCheck = model.WaterCheck;
+                        entity.PressureDiff = model.PressureDiff;
+                        entity.HosePressure = model.HosePressure;
+                        entity.OperatorId = model.OperatorId;
+                        entity.Time = model.Time;
+                        entity.Note = model.Note;
+                        entity.IsDeleted = model.IsDeleted;
+                        if (entity.IsDeleted)
+                            entity.UserDeletedId = user.Id;
+
+                    }
+
+                    db.SaveChanges();
+                    model.Id = entity.Id;
+                    return Ok(model);
+
                 }
-                else
-                {
-                    entity.TruckId = model.TruckId;
-                    entity.FlightId = model.FlightId;
-                    entity.TankNo = model.TankNo;
-                    entity.RTCNo = model.RTCNo;
-                    entity.Temperature = model.Temperature;
-                    entity.Density = model.Density;
-                    entity.Density15 = model.Density15;
-                    entity.AppearanceCheck = model.AppearanceCheck;
-                    entity.DensityCheck = model.DensityCheck;
-                    entity.WaterCheck = model.WaterCheck;
-                    entity.PressureDiff = model.PressureDiff;
-                    entity.HosePressure = model.HosePressure;
-                    entity.OperatorId = model.OperatorId;
-                    entity.Time = model.Time;
-                    entity.Note = model.Note;
-                    entity.IsDeleted = model.IsDeleted;
-                    if (entity.IsDeleted)
-                        entity.UserDeletedId = user.Id;
-
-                }
-
-                db.SaveChanges();
-                model.Id = entity.Id;
-                return Ok(model);
-
             }
             return BadRequest();
 
@@ -111,6 +117,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                     Temperature = b.Temperature,
                     Density = b.Density,
                     Density15 = b.Density15,
+                    DensityDiff = b.DensityDiff,
                     AppearanceCheck = b.AppearanceCheck,
                     DensityCheck = b.DensityCheck,
                     WaterCheck = b.WaterCheck,

@@ -530,6 +530,9 @@ namespace Megatech.FMS.WebAPI.Controllers
         [ResponseType(typeof(Receipt))]
         public IHttpActionResult PostReceipt(ReceiptModel receipt)
         {
+            if (receipt == null)
+                return BadRequest();
+
             var ticks = DateTime.Now.Ticks.ToString();
 
             Logger.AppendLog("RECEIPT", "Receive Request  " + ticks, "receipt");
@@ -538,11 +541,11 @@ namespace Megatech.FMS.WebAPI.Controllers
             Logger.AppendLog("RECEIPT", json, "receipt-data");
             if (!ModelState.IsValid)
             {
+                Logger.AppendLog("ERROR", receipt.Number, "receipt");
                 var values = ModelState.Values.Select(v => v.Errors).ToList();
                 var erros = values.Select(v => v.FirstOrDefault().ErrorMessage).ToList();
 
-                //Logger.AppendLog("RECEIPT", json, "receipt-data");
-                Logger.AppendLog("ERROR", receipt.Number, "receipt");
+       
 
                 foreach (var item in erros)
                 {
@@ -573,7 +576,7 @@ namespace Megatech.FMS.WebAPI.Controllers
             try
             {
                 Logger.AppendLog(ticks, "Save Receipt # " + receipt.Number, "receipt");
-                var model = db.Receipts.FirstOrDefault(re =>re.Number == receipt.Number && re.IsReuse == receipt.IsReuse);
+                var model = db.Receipts.FirstOrDefault(re =>re.Number == receipt.Number && re.IsReuse == receipt.IsReuse );
                 if (model != null)
                 {
                     Logger.AppendLog(ticks, $"Receipt # {receipt.Number} existed", "receipt");

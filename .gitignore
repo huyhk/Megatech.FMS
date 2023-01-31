@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Megatech.FMS.Data/Migrations/202212120759135_trucklog.resx
+/Megatech.FMS.Data/Migrations/202212120759135_trucklog.Designer.cs
+/Megatech.FMS.Data/Migrations/202212120759135_trucklog.cs

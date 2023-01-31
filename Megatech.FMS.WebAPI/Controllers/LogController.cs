@@ -1,6 +1,7 @@
 ﻿using FMS.Data;
 using Megatech.FMS.WebAPI.Models;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -9,12 +10,49 @@ using System.Security.Claims;
 using System.Web;
 using System.Web.Hosting;
 using System.Web.Http;
+using System.Data;
+using System.Linq;
+using Megatech.FMS.WebAPI.Models;
 
 namespace Megatech.FMS.WebAPI.Controllers
 {
     [Route("api/log")]
     public class LogController : ApiController
     {
+        [HttpPost]
+        [Authorize]
+        [Route("api/log/list")]
+        public IHttpActionResult PostList(IList<TruckLogModel> model)
+        {
+            ClaimsPrincipal principal = Request.GetRequestContext().Principal as ClaimsPrincipal;
+
+            var userName = ClaimsPrincipal.Current.Identity.Name;
+
+            using (var db = new DataContext())
+            {
+                var user = db.Users.FirstOrDefault(u => u.UserName.Equals(userName, StringComparison.OrdinalIgnoreCase));
+
+                foreach (var item in model)
+                {
+                    var logEntry = new TruckLog
+                    {
+                        TruckId = item.TruckId,
+                        LogTime = item.LogTime,
+                        LogType = item.LogType,
+                        LogText = item.LogText,
+                        TabletId = item.TabletId,
+                        DateCreated = DateTime.Now,
+                        UserCreatedId = user?.Id,
+                        UserId = item.UserId
+                    };
+
+
+                    db.TruckLog.Add(logEntry);
+                }
+                db.SaveChanges();
+            }
+            return Ok();
+        }
         public IHttpActionResult Post()
         {
             ClaimsPrincipal principal = Request.GetRequestContext().Principal as ClaimsPrincipal;

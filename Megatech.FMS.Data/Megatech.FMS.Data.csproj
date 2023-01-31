@@ -86,6 +86,7 @@
     <Compile Include="Entity\FHSImport.cs" />
     <Compile Include="Entity\RefuelItem.cs" />
     <Compile Include="Entity\ReportBMEnums.cs" />
+    <Compile Include="Entity\Review.cs" />
     <Compile Include="Entity\Role.cs" />
     <Compile Include="Entity\Route.cs" />
     <Compile Include="Entity\Shift.cs" />
@@ -94,13 +95,14 @@
     <Compile Include="Entity\Truck.cs" />
     <Compile Include="Entity\TruckAssign.cs" />
     <Compile Include="Entity\TruckFuel.cs" />
+    <Compile Include="Entity\TruckLog.cs" />
     <Compile Include="Entity\User.cs" />
     <Compile Include="Entity\UserAirportData.cs" />
     <Compile Include="Entity\UserLog.cs" />
     <Compile Include="Entity\Vehicle.cs" />
-    <Compile Include="Migrations\202204210730452_FHSImport.cs" />
-    <Compile Include="Migrations\202204210730452_FHSImport.designer.cs">
-      <DependentUpon>202204210730452_FHSImport.cs</DependentUpon>
+    <Compile Include="Migrations\202212120759135_trucklog.cs" />
+    <Compile Include="Migrations\202212120759135_trucklog.designer.cs">
+      <DependentUpon>202212120759135_trucklog.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Permissions\ActionInfo.cs" />
@@ -117,8 +119,8 @@
     <Folder Include="Services\" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\202204210730452_FHSImport.resx">
-      <DependentUpon>202204210730452_FHSImport.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\202212120759135_trucklog.resx">
+      <DependentUpon>202212120759135_trucklog.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

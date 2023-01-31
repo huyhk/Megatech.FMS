@@ -47,6 +47,7 @@ namespace Megatech.FMS.WebAPI.Models
         public string OperatorName { get; set; }
 
         public string Note { get; set; }
+        public decimal? DensityDiff { get;  set; }
 
         internal BM2505 toEntity()
         {
