@@ -90,7 +90,6 @@ namespace Megatech.FMS.WebAPI.Controllers
                     version = int.Parse(appVersion.Substring(idx + 1));
                 }
             }
-            Logger.AppendLog("VER", version.ToString(), "Invoice");
             if (version < 38)
                 return Ok();
 
@@ -400,6 +399,26 @@ namespace Megatech.FMS.WebAPI.Controllers
 
         }
 
+
+        [HttpGet]
+        [Route("api/invoices/aits/{id}")]
+        public IHttpActionResult CreateJsonAITS(int id)
+        {
+            try
+            {
+                var inv = db.Invoices.Include(a => a.Receipt)
+                           .Include(a => a.Customer)
+                           .Include(a => a.Flight.Airport)
+                           .Include(a => a.Items).FirstOrDefault(i => i.Id == id);
+
+                var invoiceData = new InvoiceJsonData(inv, null);
+                return Json(invoiceData);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         // DELETE: api/Invoices/5
         [ResponseType(typeof(Invoice))]

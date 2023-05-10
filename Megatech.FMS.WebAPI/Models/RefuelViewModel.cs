@@ -241,5 +241,9 @@ namespace Megatech.FMS.WebAPI.Models
 
         public RETURN_UNIT? ReturnUnit { get;  set; }
         public AirlineViewModel AirlineModel { get; internal set; }
+
+
+        public bool HasReview { get; set; }
+        public string FlightUniqueId { get; set; } = Guid.NewGuid().ToString();
     }
 }

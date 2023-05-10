@@ -148,6 +148,9 @@ namespace FMS.Data
 
         public DbSet<Review> Reviews { get; set; }
 
+
+        public DbSet<BM2505Container> BM2505Containers { get; set; }
+
         public void ClearChanges()
         {
             var changedEntriesCopy = this.ChangeTracker.Entries()

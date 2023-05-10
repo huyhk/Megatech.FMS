@@ -297,6 +297,9 @@
     <Compile Include="Controllers\AirlinesController.cs" />
     <Compile Include="Controllers\AirportsController.cs" />
     <Compile Include="Controllers\AppUpdateController.cs" />
+    <Compile Include="Controllers\ImportController.cs" />
+    <Compile Include="Controllers\LogController.cs" />
+    <Compile Include="Controllers\ReviewController.cs" />
     <Compile Include="Controllers\ChangeLogsController.cs" />
     <Compile Include="Controllers\ExportController.cs" />
     <Compile Include="Controllers\FlightsController.cs" />
@@ -327,6 +330,7 @@
     <Compile Include="Models\InvoiceFormModel.cs" />
     <Compile Include="Models\InvoiceModel.cs" />
     <Compile Include="Models\FlightViewModel.cs" />
+    <Compile Include="Models\ReviewModel.cs" />
     <Compile Include="Models\TruckLogModel.cs" />
     <Compile Include="Models\ManualReceiptModel.cs" />
     <Compile Include="Models\PermissionViewModel.cs" />

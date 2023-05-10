@@ -14,6 +14,8 @@ namespace FMS.Data
 
         public bool? DomesticInvoice { get; set; }
 
+        public Branch? Branch { get; set; }
+
         public PAYMENT_METHOD? PaymentMethod { get; set; } = PAYMENT_METHOD.BANK;
     }
 

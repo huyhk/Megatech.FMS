@@ -97,6 +97,8 @@ namespace FMS.Data
         public FlightCarry FlightCarry { get; set; }
         public int? CreateType { get; set; }
 
+        public Guid? UniqueId { get; set; } = new Guid();
+
         public void RepairDateTime()
         {
             if (ArrivalScheduledTime == null && DepartureScheduledTime == null)

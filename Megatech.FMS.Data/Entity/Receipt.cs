@@ -93,6 +93,9 @@ namespace FMS.Data
         public Guid? UniqueId { get; set; }
         public string ReplacedId { get; set; }
 
+
+        public bool? IsThermal { get; set; }
+
         public List<Invoice> CreateInvoices()
         {
             try
@@ -181,6 +184,11 @@ namespace FMS.Data
             
         }
 
+    }
+
+    public enum PRINTER_TYPE
+    {
+        THERMAL
     }
 
     public class ReceiptItem : BaseEntity

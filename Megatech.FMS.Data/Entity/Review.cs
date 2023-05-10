@@ -22,8 +22,9 @@ namespace FMS.Data
 
         public string OtherReason { get; set; }
         public DateTime ReviewDate { get; set; }
+        public Guid UniqueId { get; set; } = Guid.NewGuid();
 
-        
+        public string ImagePath { get; set; }
     }
 
     public enum REVIEW_RATE

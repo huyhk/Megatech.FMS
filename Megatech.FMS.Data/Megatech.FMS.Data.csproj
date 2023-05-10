@@ -66,6 +66,7 @@
     <Compile Include="Entity\Airline.cs" />
     <Compile Include="Entity\Airport.cs" />
     <Compile Include="Entity\BaseEntity.cs" />
+    <Compile Include="Entity\BM2505Container.cs" />
     <Compile Include="Entity\CheckTruck.cs" />
     <Compile Include="Entity\Company.cs" />
     <Compile Include="Entity\Device.cs" />
@@ -100,9 +101,9 @@
     <Compile Include="Entity\UserAirportData.cs" />
     <Compile Include="Entity\UserLog.cs" />
     <Compile Include="Entity\Vehicle.cs" />
-    <Compile Include="Migrations\202212120759135_trucklog.cs" />
-    <Compile Include="Migrations\202212120759135_trucklog.designer.cs">
-      <DependentUpon>202212120759135_trucklog.cs</DependentUpon>
+    <Compile Include="Migrations\202305100709213_BM2505Container.cs" />
+    <Compile Include="Migrations\202305100709213_BM2505Container.designer.cs">
+      <DependentUpon>202305100709213_BM2505Container.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Permissions\ActionInfo.cs" />
@@ -119,8 +120,8 @@
     <Folder Include="Services\" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\202212120759135_trucklog.resx">
-      <DependentUpon>202212120759135_trucklog.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\202305100709213_BM2505Container.resx">
+      <DependentUpon>202305100709213_BM2505Container.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

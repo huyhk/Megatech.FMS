@@ -23,7 +23,6 @@ namespace Megatech.FMS.WebAPI.App_Start
             if (PRICE_BASE_URL == null)
                 PRICE_BASE_URL = "http://203.128.244.70:6124/api/";
 
-            //Logger.AppendLog("IMPORT", "Request " + DateTime.Now.ToString(), "import");
 
             if (lastRequestDate < DateTime.Now.AddMinutes(0 - INTERVAL))
             {
@@ -125,7 +124,8 @@ namespace Megatech.FMS.WebAPI.App_Start
                 }
                 catch (Exception ex)
                 {
-                    Logger.AppendLog("IMPORT", ex.Message, "import");
+                    Logger.LogException(ex, "import");
+
                 }
             }
         }
@@ -196,8 +196,9 @@ namespace Megatech.FMS.WebAPI.App_Start
                                     a.ExchangeRate = a.Currency == CURRENCY.VND ? 1.0M : item.Ty_Gia;
                                     a.DateUpdated = DateTime.Now;
                                 }
+                                db.SaveChanges();
                             }
-                            db.SaveChanges();
+                            
                         }
                         processing_price = false;
                         Logger.AppendLog("PRICE", "End Import", "import");
@@ -207,7 +208,8 @@ namespace Megatech.FMS.WebAPI.App_Start
                 }
                 catch (Exception ex)
                 {
-                    Logger.AppendLog("PRICE", "Error: " + ex.Message, "import");
+                    //Logger.AppendLog("PRICE", "Error: " + ex.Message, "import");
+                    Logger.LogException(ex, "import");
                 }
 
             }

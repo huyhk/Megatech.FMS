@@ -214,7 +214,9 @@ namespace Megatech.FMS.WebAPI.Controllers
                     //find airline by pattern, if exists, use pattern first
                     var patterns = db.Airlines.Where(a => !string.IsNullOrEmpty(a.Pattern)).ToList();
 
-                    var pp = patterns.FirstOrDefault(p => Regex.IsMatch(model.FlightCode, p.Pattern,RegexOptions.IgnoreCase));
+                    var pp = patterns.FirstOrDefault(p => Regex.IsMatch(model.FlightCode, p.Pattern,RegexOptions.IgnoreCase) && p.Branch == (model.RefuelCompany ==REFUEL_COMPANY.NAFSC? Branch.MB: Branch.MN)  );
+                    if (pp==null)
+                        pp = patterns.FirstOrDefault(p => Regex.IsMatch(model.FlightCode, p.Pattern, RegexOptions.IgnoreCase) );
                     if (pp != null)
                         airline = pp;// db.Airlines.FirstOrDefault(a => a.Id == pp.Id);
 

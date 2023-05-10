@@ -29,7 +29,7 @@ namespace Megatech.FMS.DataExchange
 #endif
             if (lastCall == null)
                 lastCall = DateTime.Now.AddMinutes(-10);
-            if (running && lastCall < DateTime.Now.AddMinutes(-1))
+            if (running && lastCall < DateTime.Now.AddMinutes(-5))
             {
                 running = false;
 
@@ -46,8 +46,9 @@ namespace Megatech.FMS.DataExchange
                 {
                     try
                     {
-                        db.Database.ExecuteSqlCommand("exec usp_fix_invoices");
                         running = true;
+                        db.Database.ExecuteSqlCommand("exec usp_fix_invoices");
+                        
                         //Logger.AppendLog("AITS", "start scanning AITS " + running.ToString(), "aits");
                         //var lstCancel = db.Invoices.Where(inv => (bool)inv.Exported_AITS && (bool)inv.RequestCancel && !(bool)inv.Cancelled).Select(inv => inv.Id).ToList();
                         //Logger.AppendLog("AITS", "Cancel list count:" + lstCancel.Count.ToString(), "exporter");

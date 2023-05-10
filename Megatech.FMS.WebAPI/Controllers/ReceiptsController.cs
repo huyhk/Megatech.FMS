@@ -61,6 +61,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                     Volume = model.Volume,
                     Weight = model.Weight,
                     IsFHS = model.IsFHS,
+                    IsThermal = model.IsThermal,
                     TechLog = model.TechLog,
 
                     Items = new List<ReceiptItemModel>()
@@ -143,6 +144,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                     Volume = model.Volume,
                     Weight = model.Weight,
                     IsFHS = model.IsFHS,
+                    IsThermal = model.IsThermal,
                     TechLog = model.TechLog,
                     Items = new List<ReceiptItemModel>()
                 };
@@ -526,6 +528,49 @@ namespace Megatech.FMS.WebAPI.Controllers
             return StatusCode(HttpStatusCode.NoContent);
         }
 
+        [HttpPost]
+
+        [Route("api/receipts/multipart")]
+        public IHttpActionResult PostMultipart()
+        {
+            var folderPath = HostingEnvironment.MapPath("/receipts");
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
+
+            if (HttpContext.Current.Request.Files.Count>0)
+            {
+                var imageFile = HttpContext.Current.Request.Files["Receipt-Image"];
+                var buyerFile = HttpContext.Current.Request.Files["Buyer-Signature"];
+                var sellerFile = HttpContext.Current.Request.Files["Seller-Signature"];
+                var json = HttpContext.Current.Request["Receipt-Data"];
+
+                ReceiptModel receipt = JsonConvert.DeserializeObject<ReceiptModel>(json);
+
+                if (imageFile != null)
+                {
+                    imageFile.SaveAs(Path.Combine(folderPath, receipt.Number + ".jpg"));
+                    receipt.ImagePath = receipt.Number + ".jpg";
+
+                }
+
+                if (buyerFile != null)
+                {
+                    buyerFile.SaveAs(Path.Combine(folderPath, receipt.Number + "_BUYER.jpg"));
+                    receipt.SignaturePath = receipt.Number + "_BUYER.jpg";
+                }
+                if (sellerFile != null)
+                {
+                    sellerFile.SaveAs(Path.Combine(folderPath, receipt.Number + "_SELLER.jpg"));
+                    receipt.SellerPath = receipt.Number + "_SELLER.jpg";
+                }
+                
+                ReceiptModel.SaveReceipt(receipt); 
+                return Ok(receipt);
+
+
+            }
+            return BadRequest();
+        }
         // POST: api/Receipts
         [ResponseType(typeof(Receipt))]
         public IHttpActionResult PostReceipt(ReceiptModel receipt)
@@ -561,7 +606,7 @@ namespace Megatech.FMS.WebAPI.Controllers
 
             var userId = user != null ? user.Id : 0;
             //var json = JsonConvert.SerializeObject(receipt);
-            if (receipt.EndTime < DateTime.Today.AddDays(-20))
+            if (receipt.EndTime < DateTime.Today.AddDays(-5))
             {
                 Logger.AppendLog(ticks, "Error Old receipt " + receipt.Number, "receipt");
                 receipt.Id = int.MaxValue;
@@ -588,7 +633,8 @@ namespace Megatech.FMS.WebAPI.Controllers
                 //process route and flight type
                 var routes = receipt.RouteName.Split(new char[] { '-', ' ' });
                 if (routes.Length > 1)
-                { 
+                {
+                    var desc = routes[1];
                     
                 }
 

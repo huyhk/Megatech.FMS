@@ -19,7 +19,7 @@ namespace Megatech.FMS.WebAPI.Controllers
     {
         public AirlinesController()
         {
-            ImportTask.Execute();
+            //ImportTask.Execute();
         }
         private DataContext db = new DataContext();
 
@@ -108,7 +108,10 @@ namespace Megatech.FMS.WebAPI.Controllers
                     a.ProductName = gprice.Product.Name;
 
                     var pp = priceList.OrderByDescending(p => p.StartDate)
-                        .FirstOrDefault(p => p.CustomerId == a.Id);
+                        .FirstOrDefault(p => p.CustomerId == a.Id && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch);
+                    if (pp==null)
+                        pp = priceList.OrderByDescending(p => p.StartDate)
+                       .FirstOrDefault(p => p.CustomerId == a.Id );
                     //if (pp == null)
                     //    pp = priceList.OrderByDescending(p => p.StartDate)
                     //     .FirstOrDefault(p => (p.Unit == a.Unit && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch));
@@ -127,16 +130,16 @@ namespace Megatech.FMS.WebAPI.Controllers
                 else
                 {
                     var pp = priceList.OrderByDescending(p => p.StartDate)
-                         .FirstOrDefault(p => p.AirlineType == 1 && p.CustomerId == a.Id);
+                         .FirstOrDefault(p => p.AirlineType == 1 && p.CustomerId == a.Id && p.Unit == a.Unit );
                     if (pp == null)
                         pp = priceList.OrderByDescending(p => p.StartDate)
-                         .FirstOrDefault(p => p.AirlineType == 1 && (p.Unit == a.Unit && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch));
+                         .FirstOrDefault(p => p.AirlineType == 1 &&p.CustomerId == null && (p.Unit == a.Unit && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch));
 
                     var pp01 = priceList.OrderByDescending(p => p.StartDate)
                          .FirstOrDefault(p => p.AirlineType == 0 && p.CustomerId == a.Id);
                     if (pp01 == null)
                         pp01 = priceList.OrderByDescending(p => p.StartDate)
-                         .FirstOrDefault(p => p.AirlineType == 0 && (p.Unit == a.Unit && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch));
+                         .FirstOrDefault(p => p.AirlineType == 0 && p.CustomerId == null && (p.Unit == a.Unit && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch));
                     if (pp != null)
                     {
                         a.Price = pp.Price;

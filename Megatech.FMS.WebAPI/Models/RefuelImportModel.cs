@@ -103,7 +103,7 @@ namespace Megatech.FMS.WebAPI.Models
         [Required]
         public DateTime EndTime { get; set; }
         [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "Value of '{0}' must be greater than 0")]
+        //[Range(1, int.MaxValue, ErrorMessage = "Value of '{0}' must be greater than 0")]
         public decimal StartNumber { get; set; } = 0;
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Value of '{0}' must be greater than 0")]

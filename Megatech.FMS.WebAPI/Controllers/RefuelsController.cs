@@ -32,7 +32,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                 //DataExchange.Logger.AppendLog("REFUEL", "Constructor", "aits");
                 //Logger.AppendLog("EXPORT", "Auto run", "refuel");
 
-                DataExchange.Exporter.ExportInvoice(); 
+                DataExchange.Exporter.ExportInvoice();
             });
         }
         public enum TIME_RANGE
@@ -73,12 +73,12 @@ namespace Megatech.FMS.WebAPI.Controllers
                     receipt_v2 = false;
             }
             else receipt_v2 = false;
-          
+
 
             using (var db = new DataContext())
             using (var trans = db.Database.BeginTransaction(IsolationLevel.ReadUncommitted))
             {
-                
+
                 ClaimsPrincipal principal = Request.GetRequestContext().Principal as ClaimsPrincipal;
 
                 var userName = ClaimsPrincipal.Current.Identity.Name;
@@ -89,7 +89,7 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                 var airport = db.Airports.FirstOrDefault(a => a.Id == airportId);
                 //if (lastModified >= DateTime.Today)
-               
+
                 db.DisableFilter("IsNotDeleted");
                 db.Database.CommandTimeout = 180;
                 db.Configuration.ProxyCreationEnabled = false;
@@ -114,6 +114,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                         {
                             FlightStatus = r.Flight.Status,
                             FlightId = r.FlightId,
+                            FlightUniqueId = r.Flight.UniqueId == null ? null : r.Flight.UniqueId.ToString(),
                             FlightCode = r.Flight.Code,
                             FlightType = r.Flight.FlightType,
                             EstimateAmount = r.Flight.EstimateAmount,
@@ -183,7 +184,8 @@ namespace Megatech.FMS.WebAPI.Controllers
                             ReceiptNumber = r.Receipt != null ? r.Receipt.Number : (r.Printed || receipt_v2) ? r.ReceiptNumber : "",
                             ReceiptUniqueId = r.ReceiptUniqueId,
                             Exported = r.Exported,
-                            DateUpdated = r.DateUpdated
+                            DateUpdated = r.DateUpdated,
+                            HasReview = r.Flight.Reviews.Count > 0
 
                         }).ToList();
 
@@ -452,6 +454,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                         },
                         FlightStatus = r.Flight.Status,
                         FlightId = r.FlightId,
+                        FlightUniqueId = r.Flight.UniqueId == null ? null : r.Flight.UniqueId.ToString(),
                         FlightCode = r.Flight.Code,
                         FlightType = r.Flight.FlightType,
                         EstimateAmount = r.Flight.EstimateAmount,
@@ -520,7 +523,8 @@ namespace Megatech.FMS.WebAPI.Controllers
                         ReceiptNumber = r.Receipt != null ? r.Receipt.Number : (r.Printed || receipt_v2) ? r.ReceiptNumber : "",
                         ReceiptUniqueId = r.ReceiptUniqueId,
                         Exported = r.Exported,
-                        DateUpdated = r.DateUpdated
+                        DateUpdated = r.DateUpdated,
+                        HasReview = r.Flight.Reviews.Count > 0
 
                     }).FirstOrDefault(r => r.Id == id);
 
@@ -542,20 +546,20 @@ namespace Megatech.FMS.WebAPI.Controllers
                 refuel.IsAlert = availAmount < refuel.EstimateAmount - refueledAmount;
 
                 /// get the price 
-                if (refuel.Status != REFUEL_ITEM_STATUS.DONE)
+                if (refuel.Status != REFUEL_ITEM_STATUS.DONE || true)
                 {
                     var airport = db.Airports.FirstOrDefault(a => a.Id == refuel.AirportId);
                     var price = db.ProductPrices.Where(p => p.StartDate <= DateTime.Now)
                         .OrderByDescending(p => p.StartDate)
-                        .FirstOrDefault(p => p.CustomerId == refuel.AirlineId);
+                        .FirstOrDefault(p => p.CustomerId == refuel.AirlineId && p.Unit == (int)refuel.Unit);
                     if (price == null)
-                        price = db.ProductPrices.Where(p => p.StartDate <= DateTime.Now && p.BranchId == (int)airport.Branch && p.DepotType == airport.DepotType && p.Unit == (int)refuel.Unit && refuel.AirlineType == 1)
+                        price = db.ProductPrices.Where(p => p.CustomerId == null && p.StartDate <= DateTime.Now && p.BranchId == (int)airport.Branch && p.DepotType == airport.DepotType && p.Unit == (int)refuel.Unit && refuel.AirlineType == 1)
                        .OrderByDescending(p => p.StartDate)
                        .FirstOrDefault(p => p.AirlineType == (refuel.IsInternational ? 1 : 0));
 
                     if (price == null)
                         price = db.ProductPrices.OrderByDescending(p => p.StartDate)
-                            .FirstOrDefault(p => p.StartDate <= DateTime.Now && p.Unit == (int)refuel.Unit && refuel.AirlineType == 0);
+                            .FirstOrDefault(p => p.CustomerId == null && p.StartDate <= DateTime.Now && p.Unit == (int)refuel.Unit && refuel.AirlineType == 0);
                     if (price != null)
                     {
                         refuel.Price = price.Price;
@@ -570,7 +574,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                        .Select(r => new RefuelViewModel
                        {
                            FlightStatus = r.Flight.Status,
-                           FlightId = r.FlightId,
+                           FlightUniqueId = r.Flight.UniqueId == null ? null : r.Flight.UniqueId.ToString(),
                            FlightCode = r.Flight.Code,
                            FlightType = r.Flight.FlightType,
                            EstimateAmount = r.Flight.EstimateAmount,
@@ -641,7 +645,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                 //}
                 Logger.AppendLog("REFUEL", "End get others", "refuel");
 
-                return Ok(refuel); 
+                return Ok(refuel);
             }
         }
 
@@ -684,12 +688,12 @@ namespace Megatech.FMS.WebAPI.Controllers
         [ResponseType(typeof(RefuelViewModel))]
         public IHttpActionResult PostRefuel(RefuelViewModel refuel)
         {
-            Logger.AppendLog("POST", refuel.TruckNo + " " + refuel.FlightCode,"refuel");
+            Logger.AppendLog("POST", refuel.TruckNo + " " + refuel.FlightCode, "refuel");
 
             using (var db = new DataContext())
-                using(var dbTransaction = db.Database.BeginTransaction(IsolationLevel.ReadUncommitted))
+            using (var dbTransaction = db.Database.BeginTransaction(IsolationLevel.ReadUncommitted))
             {
-                
+
 
 
                 ClaimsPrincipal principal = Request.GetRequestContext().Principal as ClaimsPrincipal;
@@ -733,7 +737,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                 var count = db.RefuelItems.Where(r => r.UniqueId == guid).Count();
 
                 bool isOK = false; int tryCount = 1;
-                while (!isOK && tryCount++<5)
+                while (!isOK && tryCount++ < 5)
                 {
                     try
                     {
@@ -760,6 +764,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                                 {
                                     fl = new Flight
                                     {
+                                        UniqueId = Guid.Parse(refuel.FlightUniqueId),
                                         Code = refuel.FlightCode ?? "N/A",
                                         AircraftCode = refuel.AircraftCode,
 
@@ -806,7 +811,7 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                         var truckId = truck == null ? 0 : truck.Id;
 
-                        
+
                         // find existing item
                         var model = db.RefuelItems.Include(r => r.Flight).FirstOrDefault(r => r.UniqueId == guid);
 
@@ -956,55 +961,55 @@ namespace Megatech.FMS.WebAPI.Controllers
                                     model.WeightNote = refuel.TechLog.ToString("#");
                                 }
 
-                               
+                                if (!model.Printed)
+                                {
                                     model.OriginalGallon = Math.Round(refuel.RealAmount, 0, MidpointRounding.AwayFromZero);
 
 
-                                    //if (!(model.Exported ?? false))
-                                    //{
+                                    
                                     model.Gallon = Math.Round(refuel.RealAmount, 0, MidpointRounding.AwayFromZero);
                                     model.Amount = Math.Round(refuel.RealAmount, 0, MidpointRounding.AwayFromZero);
                                     model.Volume = refuel.Volume;// Math.Round(refuel.RealAmount * RefuelItem.GALLON_TO_LITTER, 0, MidpointRounding.AwayFromZero);
                                     if (model.Volume == 0)
                                         model.Volume = Math.Round(refuel.RealAmount * RefuelItem.GALLON_TO_LITTER, 0, MidpointRounding.AwayFromZero);
                                     model.Weight = Math.Round((model.Volume ?? 0) * model.Density, 0, MidpointRounding.AwayFromZero);
-                                    //}
+                    
+                                }
+
+                                model.EndNumber = refuel.EndNumber;
+                                model.StartNumber = refuel.StartNumber;// model.EndNumber - model.Amount;
+                                model.Completed = refuel.Completed;
 
 
-                                    model.EndNumber = refuel.EndNumber;
-                                    model.StartNumber = refuel.StartNumber;// model.EndNumber - model.Amount;
-                                    model.Completed = refuel.Completed;
+                                if (refuel.StartTime > System.Data.SqlTypes.SqlDateTime.MinValue.Value)
+                                    model.StartTime = refuel.StartTime;
 
-
-                                    if (refuel.StartTime > System.Data.SqlTypes.SqlDateTime.MinValue.Value)
-                                        model.StartTime = refuel.StartTime;
-
-                                    if (refuel.EndTime > System.Data.SqlTypes.SqlDateTime.MinValue.Value)
+                                if (refuel.EndTime > System.Data.SqlTypes.SqlDateTime.MinValue.Value)
+                                {
+                                    if (refuel.Status == REFUEL_ITEM_STATUS.DONE)
                                     {
-                                        if (refuel.Status == REFUEL_ITEM_STATUS.DONE)
-                                        {
-                                            model.EndTime = refuel.EndTime;
+                                        model.EndTime = refuel.EndTime;
 
-                                        }
                                     }
-                                    else
-                                        model.EndTime = null;
+                                }
+                                else
+                                    model.EndTime = null;
 
 
-                                    model.Price = refuel.Price;
-                                    model.Currency = refuel.Currency;
-                                    model.Unit = refuel.Unit;
+                                model.Price = refuel.Price;
+                                model.Currency = refuel.Currency;
+                                model.Unit = refuel.Unit;
 
-                                    model.TaxRate = refuel.TaxRate;
+                                model.TaxRate = refuel.TaxRate;
 
-                                    if (refuel.DeviceStartTime != null && !string.IsNullOrEmpty(refuel.DeviceStartTime.ToString()) && refuel.DeviceStartTime > System.Data.SqlTypes.SqlDateTime.MinValue.Value)
-                                        model.DeviceStartTime = refuel.DeviceStartTime;
-                                    if (refuel.DeviceEndTime != null && !string.IsNullOrEmpty(refuel.DeviceEndTime.ToString()) && refuel.DeviceEndTime > System.Data.SqlTypes.SqlDateTime.MinValue.Value)
-                                        model.DeviceEndTime = refuel.DeviceEndTime;
+                                if (refuel.DeviceStartTime != null && !string.IsNullOrEmpty(refuel.DeviceStartTime.ToString()) && refuel.DeviceStartTime > System.Data.SqlTypes.SqlDateTime.MinValue.Value)
+                                    model.DeviceStartTime = refuel.DeviceStartTime;
+                                if (refuel.DeviceEndTime != null && !string.IsNullOrEmpty(refuel.DeviceEndTime.ToString()) && refuel.DeviceEndTime > System.Data.SqlTypes.SqlDateTime.MinValue.Value)
+                                    model.DeviceEndTime = refuel.DeviceEndTime;
 
 
 
-                                
+
 
 
                                 model.QCNo = refuel.QualityNo;
@@ -1037,7 +1042,7 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                                     model.ReceiptUniqueId = refuel.ReceiptUniqueId;
 
-                                    model.InvoiceNumber = refuel.InvoiceNumber?? model.InvoiceNumber;
+                                    model.InvoiceNumber = refuel.InvoiceNumber ?? model.InvoiceNumber;
                                     model.PrintTemplate = refuel.PrintTemplate;
                                     if (refuel.InvoiceFormId > 0)
                                         model.InvoiceFormId = refuel.InvoiceFormId;
@@ -1079,7 +1084,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                                                     .FirstOrDefault(p => p.AirlineType == (int)model.Flight.FlightType && p.CustomerId == refuel.AirlineId);
                                         if (price == null)
                                             price = prices.OrderByDescending(p => p.StartDate)
-                                             .FirstOrDefault(p => p.AirlineType == 1 && (p.Unit == (int)refuel.Unit && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch));
+                                             .FirstOrDefault(p => p.AirlineType == 1 && p.CustomerId == null && (p.Unit == (int)refuel.Unit && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch));
                                         if (price != null)
                                         {
                                             model.Price = price.Price;
@@ -1092,7 +1097,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                                             .FirstOrDefault(p => p.AirlineType == (refuel.IsInternational ? 1 : 0) && p.CustomerId == refuel.AirlineId);
                                         if (price == null)
                                             price = prices.OrderByDescending(p => p.StartDate)
-                                        .FirstOrDefault(p => p.AirlineType == (refuel.IsInternational ? 1 : 0) && (p.Unit == (int)refuel.Unit && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch));
+                                        .FirstOrDefault(p => p.CustomerId == null && p.AirlineType == (refuel.IsInternational ? 1 : 0) && (p.Unit == (int)refuel.Unit && p.DepotType == airport.DepotType && p.BranchId == (int)airport.Branch));
 
                                         if (price != null)
                                         {
@@ -1163,7 +1168,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                         var newItem = db.RefuelItems.Where(r => r.Id == model.Id).Select(r => new RefuelViewModel
                         {
                             FlightStatus = r.Flight.Status,
-                            FlightId = r.FlightId,
+                            FlightUniqueId = r.Flight.UniqueId == null ? null : r.Flight.UniqueId.ToString(),
                             FlightCode = r.Flight.Code,
                             FlightType = r.Flight.FlightType,
                             EstimateAmount = r.Flight.EstimateAmount,
@@ -1183,7 +1188,7 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                             Volume = r.Volume ?? 0,
 
-                            StartTime = r.Status != REFUEL_ITEM_STATUS.NONE && r.StartTime.Year<9999 ? r.StartTime : DateTime.Now,
+                            StartTime = r.Status != REFUEL_ITEM_STATUS.NONE && r.StartTime.Year < 9999 ? r.StartTime : DateTime.Now,
                             EndTime = r.EndTime ?? DateTime.Now,
                             StartNumber = r.StartNumber,
                             EndNumber = r.EndNumber,
@@ -1237,7 +1242,7 @@ namespace Megatech.FMS.WebAPI.Controllers
 
 
                         db.EnableFilter("IsNotDeleted");
-                        
+
                         Logger.AppendLog("POST", "END Post " + refuel.UniqueId.ToString(), fileName);
 
                         return Ok(newItem);
@@ -1284,9 +1289,9 @@ namespace Megatech.FMS.WebAPI.Controllers
             var file = HttpContext.Current.Request.Files.Count > 0 ?
                     HttpContext.Current.Request.Files[0] : null;
 
-            var flight = db.Flights.Include(f => f.Airline).Include(f => f.RefuelItems.Select(r => r.Truck)).FirstOrDefault(f => f.RefuelItems.Any(r=>r.Id == id));
+            var flight = db.Flights.Include(f => f.Airline).Include(f => f.RefuelItems.Select(r => r.Truck)).FirstOrDefault(f => f.RefuelItems.Any(r => r.Id == id));
 
-            var list = flight.RefuelItems.Where(r=>r.Id == id).ToList();
+            var list = flight.RefuelItems.Where(r => r.Id == id).ToList();
 
             if (flight == null || list.Count == 0)
                 return NotFound();

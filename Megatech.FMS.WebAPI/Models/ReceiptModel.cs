@@ -73,6 +73,15 @@ namespace Megatech.FMS.WebAPI.Models
 
         public string SellerImageString { internal get; set; }
 
+
+        public string ImagePath { get; set; }
+
+        public string SellerPath { get; set; }
+
+        public string SignaturePath { get; set; }
+
+
+
         public byte[] Signature { get; set; }
 
         public byte[] SellerSignature { get; set; }
@@ -81,6 +90,8 @@ namespace Megatech.FMS.WebAPI.Models
         public bool IsReturn { get; set; }
 
         public bool? IsFHS { get; set; }
+
+        public bool? IsThermal { get; set; }
 
         public bool IsCancelled { get; set; }
 
@@ -181,7 +192,7 @@ namespace Megatech.FMS.WebAPI.Models
                 height += 30;
                 DrawText(g, "Product Name", "JET A-1", height, 1, f);
                 height += 30;
-                DrawText(g, "Refueling Method", "FHS", height, 1, f);
+                DrawText(g, "Refueling Method", (bool)IsFHS? "FHS":"Refueler", height, 1, f);
                 height += 30;
                 g.DrawLine(new Pen(Color.Black, 1), 0, height + 5, width, height + 5);
 
@@ -257,6 +268,7 @@ namespace Megatech.FMS.WebAPI.Models
                     }
                 }
                 g.Flush();
+                
 
             }
             return img;
@@ -342,7 +354,7 @@ namespace Megatech.FMS.WebAPI.Models
                             AircraftCode = receipt.AircraftCode,
                             AircraftType = receipt.AircraftType,
                             FlightCode = receipt.FlightCode,
-                            
+                            IsThermal = receipt.IsThermal,
                             IsReturn = receipt.IsReturn,
                             Manual = receipt.Manual,
                             IsReuse =  receipt.IsReuse,
@@ -363,7 +375,7 @@ namespace Megatech.FMS.WebAPI.Models
 
                             var modelItem = new ReceiptItem
                             {
-                                RefuelId = refuelItem?.Id,
+                                //RefuelId = refuelItem?.Id,
                                 TruckId = item.TruckId,
                                 //Truck = refuelItem?.Truck,
                                 StartTime = item.StartTime,
@@ -372,12 +384,12 @@ namespace Megatech.FMS.WebAPI.Models
                                 EndNumber = item.EndNumber,
                                 Temperature = item.Temperature,
                                 Density = item.Density,
-                                Gallon = item.Gallon == 0 ? (decimal)refuelItem?.Gallon : item.Gallon,
-                                Volume = item.Volume == 0 ? (decimal)refuelItem?.Volume : item.Volume,
-                                Weight = item.Weight == 0 ? (decimal)refuelItem?.Weight : item.Weight,
+                                Gallon = item.Gallon > 0 ?  item.Gallon : refuelItem?.Gallon ?? 0,
+                                Volume = item.Volume > 0 ?  item.Volume : refuelItem?.Volume ?? 0,
+                                Weight = item.Weight > 0 ?  item.Weight: refuelItem?.Weight ?? 0,
                                 QualityNo = item.QualityNo,
-                                OperatorId = refuelItem?.OperatorId,
-                                DriverId = refuelItem?.DriverId
+                                OperatorId = item.OperatorId??refuelItem?.OperatorId,
+                                DriverId = item.DriverId ?? refuelItem?.DriverId
                             };
                             item.Gallon = modelItem.Gallon;
                             item.Volume = modelItem.Volume;
@@ -402,17 +414,21 @@ namespace Megatech.FMS.WebAPI.Models
 
                         if (receipt.PdfImageString != null)
                         {
-                            SaveImage(receipt.PdfImageString, model.Number + (model.Number == "23001CLS"?cReuse:"") + ".jpg", folderPath);
+                            SaveImage(receipt.PdfImageString, model.Number + (model.Number == "23001CLS" ? cReuse : "") + ".jpg", folderPath);
                             model.ImagePath = model.Number + (model.Number == "23001CLS" ? cReuse : "") + ".jpg";
                         }
+                        else 
+                            model.ImagePath = receipt.ImagePath;
                             //model.Image = Convert.FromBase64String(receipt.PdfImageString);
                         if (receipt.SignImageString != null)
                         {
-
                             SaveImage(receipt.SignImageString, model.Number + "_BUYER.jpg", folderPath);
                             model.SignaturePath = model.Number + "_BUYER.jpg";
 
                         }
+                        else
+                            model.SignaturePath = receipt.SignaturePath;
+
                         if (model.SignaturePath != null && File.Exists(Path.Combine(folderPath, model.SignaturePath)))
                             receipt.Signature = File.ReadAllBytes(Path.Combine(folderPath, model.Number + "_BUYER.jpg"));// Convert.FromBase64String(receipt.SellerImageString);
 
@@ -421,20 +437,28 @@ namespace Megatech.FMS.WebAPI.Models
                             SaveImage(receipt.SellerImageString, model.Number + "_SELLER.jpg", folderPath);
                             model.SellerPath = model.Number + "_SELLER.jpg";
                         }
+                        else
+                            model.SellerPath = receipt.SellerPath;
+
                         if (model.SellerPath != null && File.Exists(Path.Combine(folderPath, model.SellerPath)))
                             receipt.SellerSignature = File.ReadAllBytes(Path.Combine(folderPath, model.Number + "_SELLER.jpg"));// Convert.FromBase64String(receipt.SellerImageString);
 
                         //create pdf
-                        if (model.IsFHS)
+                        if (receipt.IsThermal == true && string.IsNullOrEmpty(receipt.ImagePath))
                         {
-                            var imgIn = receipt.CreateReceiptImage();
-                            using (var ms = new MemoryStream())
+                            using (var imgIn = receipt.CreateReceiptImage())
                             {
-                                imgIn.Save(ms, ImageFormat.Jpeg);
-                                //model.Image = ms.ToArray();
-                                SaveImage(ms.ToArray(), model.Number + ".jpg", folderPath);
-                                model.ImagePath = model.Number + ".jpg";
+                                SaveImage(imgIn, model.Number + ".jpg", folderPath);
                             }
+                            //using (var ms = new MemoryStream())
+                            //{
+                            //    imgIn.Save(ms, ImageFormat.Jpeg);
+                               
+                            //    SaveImage(ms, model.Number + ".jpg", folderPath);
+                            //    model.ImagePath = model.Number + ".jpg";
+                            //    ms.Close();
+
+                            //}
                             //imgIn.Save(Path.Combine(HostingEnvironment.MapPath("~/logs/"), model.Number + ".jpg"), ImageFormat.Jpeg);
                         }
 
@@ -473,11 +497,18 @@ namespace Megatech.FMS.WebAPI.Models
                                       select groups.OrderByDescending(g => g.StartDate).FirstOrDefault()).ToList();
 
                         var pPrice = prices.OrderByDescending(p => p.StartDate)
-                                                            .FirstOrDefault(p => p.AirlineType == flightType && p.CustomerId == airlineId);
+                                                            .FirstOrDefault(p => p.AirlineType == flightType && p.CustomerId == airlineId && p.DepotType == depotType && p.BranchId == (int)airport.Branch);
+                        if (pPrice == null)
+                            pPrice = prices.OrderByDescending(p => p.StartDate)
+                                                            .FirstOrDefault(p => p.AirlineType == flightType && p.CustomerId == airlineId );
+
                         if (pPrice == null && airlineType == (int)CUSTOMER_TYPE.LOCAL)
                         {
                             pPrice = prices.OrderByDescending(p => p.StartDate)
-                                                            .FirstOrDefault(p => p.CustomerId == airlineId);
+                                                            .FirstOrDefault(p => p.CustomerId == airlineId && p.DepotType == depotType && p.BranchId == (int)airport.Branch);
+                            if (pPrice == null)
+                                pPrice = prices.OrderByDescending(p => p.StartDate)
+                                                                .FirstOrDefault(p => p.CustomerId == airlineId );
                         }
 
                         if (pPrice == null)
@@ -590,6 +621,28 @@ namespace Megatech.FMS.WebAPI.Models
         {
             SaveImage(Convert.FromBase64String(base64String), fileName, folderPath);
         }
+        private static void SaveImage(Image img, string fileName, string folderPath)
+        {
+            try
+            {
+                
+                    img.Save(Path.Combine(folderPath, fileName), ImageFormat.Jpeg);
+                
+            }
+            catch (Exception ex)
+            { }
+        }
+        private static void SaveImage(MemoryStream ms, string fileName, string folderPath)
+        {
+            try {
+                using (Image img = Image.FromStream(ms))
+                {
+                    img.Save(Path.Combine(folderPath, fileName), ImageFormat.Jpeg);
+                }
+            }
+            catch (Exception ex)
+            { }
+        }
         private static void SaveImage(byte[] bytes, string fileName, string folderPath)
         {
 
@@ -600,6 +653,7 @@ namespace Megatech.FMS.WebAPI.Models
                 {
                     Image img = Image.FromStream(ms);
                     img.Save(Path.Combine(folderPath, fileName), ImageFormat.Jpeg);
+                    img.Dispose();
                 }
             }
             catch (Exception ex)
