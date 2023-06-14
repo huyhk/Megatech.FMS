@@ -17,6 +17,13 @@ namespace FMS.Data
         public decimal? AccumulateRefuelAmount { get; set; }
 
         public DateTime Time { get; set; } = DateTime.Now;
+        public DateTime? StartTime { get; set; } = DateTime.Now;
+
+        public DateTime? EndTime
+        {
+            get { return Time; }
+            set { Time = value.Value; }
+        }
 
         public string TankNo { get; set; }
 
@@ -35,5 +42,12 @@ namespace FMS.Data
         public User Operator { get; set; }
 
         public string MaintenanceStaff { get; set; }
+
+        public DateTime TestStartTime { get; set; }
+
+        public DateTime TestEndTime { get; set; }
+
+        // TestResult true: P, 1: F
+        public bool? TestResult { get; set; } 
     }
 }

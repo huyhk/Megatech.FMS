@@ -6,6 +6,12 @@ namespace Megatech.FMS.WebAPI.Models
 {
     public class BM2505Model : BaseViewModel
     {
+        public int? ReportType { get; set; }
+
+        public int? ContainerId { get; set; }
+
+        public string ContainerName { get; set; }
+
         public int TruckId { get; set; }
 
 
@@ -22,6 +28,8 @@ namespace Megatech.FMS.WebAPI.Models
             get; set;
         }
 
+        public string Depot  { get; set; }
+
         public string RTCNo { get; set; }
 
         public decimal Temperature { get; set; }
@@ -30,7 +38,7 @@ namespace Megatech.FMS.WebAPI.Models
 
         public decimal Density15 { get; set; }
 
-        public bool DensityCheck { get; set; }
+        public bool? DensityCheck { get; set; }
 
         public string AppearanceCheck { get; set; }
 

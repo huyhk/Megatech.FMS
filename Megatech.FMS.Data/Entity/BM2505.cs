@@ -55,7 +55,7 @@ namespace FMS.Data
 
         public decimal? DensityDiff { get; set; }
 
-        public bool DensityCheck { get; set; }
+        public bool? DensityCheck { get; set; }
 
         public string AppearanceCheck { get; set; }
 

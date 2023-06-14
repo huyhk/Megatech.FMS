@@ -35,10 +35,13 @@ namespace Megatech.FMS.WebAPI.Controllers
                     {
                         entity = new BM2505
                         {
+                            ReportType = (REPORT_TYPE?)model.ReportType,
                             TruckId = model.TruckId,
                             FlightId = model.FlightId,
                             TankNo = model.TankNo,
                             RTCNo = model.RTCNo,
+                            ContainerId = model.ContainerId,
+                            Depot = model.Depot,
                             Temperature = model.Temperature,
                             Density = model.Density,
                             Density15 = model.Density15,
@@ -63,10 +66,13 @@ namespace Megatech.FMS.WebAPI.Controllers
                     }
                     else
                     {
+                        entity.ReportType = (REPORT_TYPE?)model.ReportType;
                         entity.TruckId = model.TruckId;
                         entity.FlightId = model.FlightId;
                         entity.TankNo = model.TankNo;
                         entity.RTCNo = model.RTCNo;
+                        entity.ContainerId = model.ContainerId;
+                        entity.Depot = model.Depot;
                         entity.Temperature = model.Temperature;
                         entity.Density = model.Density;
                         entity.Density15 = model.Density15;
@@ -99,7 +105,16 @@ namespace Megatech.FMS.WebAPI.Controllers
         {
             return Ok();
         }
-
+        [HttpGet]
+        [Route("api/bm2505/containers")]
+        public IHttpActionResult Containers()
+        {
+            using (var db = new DataContext())
+            {
+                var list = db.BM2505Containers.Select(c=>new {Id = c.Id, Name = c.Name}).ToList();
+                return Json(list);
+            }
+        }
         public IHttpActionResult Get(int id)
         {
             using (var db = new DataContext())
@@ -108,6 +123,7 @@ namespace Megatech.FMS.WebAPI.Controllers
                 var lst = db.BM2505s.Where(b => b.TruckId == id && b.Time >= date).Select(b => new BM2505Model
                 {
                     Id = b.Id,
+                    ReportType = (int)(b.ReportType??0),
                     TruckId = b.TruckId,
                     FlightId = b.FlightId,
                     FlightCode = b.Flight.Code,
@@ -126,7 +142,10 @@ namespace Megatech.FMS.WebAPI.Controllers
                     OperatorId = b.OperatorId,
                     OperatorName = b.Operator.FullName,
                     Time = b.Time,
-                    Note = b.Note
+                    Note = b.Note,
+                    ContainerId = b.ContainerId,
+                    ContainerName = b.Container.Name,
+                    Depot = b.Depot
                 }).ToList();
 
                 return Ok(lst);

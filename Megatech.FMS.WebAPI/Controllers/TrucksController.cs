@@ -224,7 +224,7 @@ namespace Megatech.FMS.WebAPI.Controllers
             var user = db.Users.FirstOrDefault(u => u.UserName == userName);
             var truckId = Request.Headers.GetValues("Truck-Id").FirstOrDefault();
             var truckCode = Request.Headers.GetValues("Truck-Code").FirstOrDefault();
-            Logger.AppendLog("TRUCK", "PostTruck TruckId: " + truckId + " TruckCode: " + truckCode + " ReceiptCount: " + model.ReceiptCount.ToString(), "truck");
+            //Logger.AppendLog("TRUCK", "PostTruck TruckId: " + truckId + " TruckCode: " + truckCode + " ReceiptCount: " + model.ReceiptCount.ToString(), "truck");
 
             var truck = db.Trucks.Where(t => t.Code == model.TruckNo).FirstOrDefault();
             if (truck != null)
@@ -240,8 +240,6 @@ namespace Megatech.FMS.WebAPI.Controllers
                 truck.DateUpdated = DateTime.Now;
                 truck.ReceiptCount = model.ReceiptCount;
                 model.Id = truck.Id;
-
-                
 
                 db.SaveChanges();
             }

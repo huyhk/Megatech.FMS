@@ -13,6 +13,9 @@ namespace Megatech.FMS.WebAPI.Models
 
         public DateTime Time { get; set; }
 
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+
         public int? OperatorId { get; set; }
         public string OperatorName { get; set; }
 
@@ -25,5 +28,9 @@ namespace Megatech.FMS.WebAPI.Models
         public decimal? Accumulate { get; set; }
 
         public bool IsDeleted { get; set; }
+
+        public DateTime? TestStartTime { get; set; }
+        public DateTime? TestEndTime { get; set; }
+        public bool? TestResult { get; set; }
     }
 }
