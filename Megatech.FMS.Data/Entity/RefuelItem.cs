@@ -262,6 +262,10 @@ namespace FMS.Data
 
 
         public string LastUpdateDevice { get; set; }
+
+        /// added on 2023/07/18
+        /// 
+        public decimal? WaterSensor { get; set; }
     }
 
 

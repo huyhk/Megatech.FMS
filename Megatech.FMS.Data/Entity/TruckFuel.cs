@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FMS.Data
 {
@@ -21,9 +22,9 @@ namespace FMS.Data
 
         public DateTime? EndTime
         {
-            get { return Time; }
-            set { Time = value.Value; }
-        }
+            get;
+            set;
+        } = DateTime.Now;
 
         public string TankNo { get; set; }
 
@@ -43,11 +44,39 @@ namespace FMS.Data
 
         public string MaintenanceStaff { get; set; }
 
-        public DateTime TestStartTime { get; set; }
 
-        public DateTime TestEndTime { get; set; }
+        public DateTime? StartTimeCheck { get; set; }
 
+        public DateTime? EndTimeCheck { get; set; }
+        [NotMapped]
+        public DateTime? TestStartTime
+        {
+            get { return StartTimeCheck; }
+            set { StartTimeCheck = value; }
+        }
+        [NotMapped]
+        public DateTime? TestEndTime
+        {
+            get { return EndTimeCheck; }
+            set { EndTimeCheck = value; }
+        }
+
+        public int? CheckResults { get; set; }
+
+        [NotMapped]
         // TestResult true: P, 1: F
-        public bool? TestResult { get; set; } 
+        public bool? TestResult
+        {
+            get
+            {
+                return CheckResults == 1;
+
+
+            }
+            set
+            {
+                CheckResults = value.HasValue? (bool)value ? 1 : 0: 0;
+            }
+        }
     }
 }

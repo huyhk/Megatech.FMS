@@ -185,7 +185,8 @@ namespace Megatech.FMS.WebAPI.Controllers
                             ReceiptUniqueId = r.ReceiptUniqueId,
                             Exported = r.Exported,
                             DateUpdated = r.DateUpdated,
-                            HasReview = r.Flight.Reviews.Count > 0
+                            HasReview = r.Flight.Reviews.Count > 0,
+                            WaterSensor = r.WaterSensor
 
                         }).ToList();
 
@@ -524,7 +525,8 @@ namespace Megatech.FMS.WebAPI.Controllers
                         ReceiptUniqueId = r.ReceiptUniqueId,
                         Exported = r.Exported,
                         DateUpdated = r.DateUpdated,
-                        HasReview = r.Flight.Reviews.Count > 0
+                        HasReview = r.Flight.Reviews.Count > 0,
+                        WaterSensor = r.WaterSensor
 
                     }).FirstOrDefault(r => r.Id == id);
 
@@ -639,7 +641,8 @@ namespace Megatech.FMS.WebAPI.Controllers
                            ReceiptCount = r.ReceiptCount,
                            ReceiptNumber = r.Receipt != null ? r.Receipt.Number : (r.Printed || receipt_v2) ? r.ReceiptNumber : "",
                            ReceiptUniqueId = r.ReceiptUniqueId,
-                           DateUpdated = r.DateUpdated
+                           DateUpdated = r.DateUpdated,
+                           WaterSensor = r.WaterSensor
 
                        }).ToList();
                 //}
@@ -943,7 +946,8 @@ namespace Megatech.FMS.WebAPI.Controllers
                                 model.Temperature = refuel.Temperature;
                                 model.ManualTemperature = refuel.ManualTemperature;
                                 model.Density = refuel.Density;
-
+                                ///added 2023/07/18
+                                model.WaterSensor = refuel.WaterSensor;
 
                                 //}
                                 model.WeightNote = refuel.WeightNote;
@@ -1235,7 +1239,8 @@ namespace Megatech.FMS.WebAPI.Controllers
                             ReceiptCount = r.ReceiptCount,
                             ReceiptNumber = r.Receipt != null ? r.Receipt.Number : (r.Printed || receipt_v2) ? r.ReceiptNumber : "",
                             ReceiptUniqueId = r.ReceiptUniqueId,
-                            Exported = r.Exported
+                            Exported = r.Exported,
+                            WaterSensor = r.WaterSensor,
 
 
                         }).FirstOrDefault();

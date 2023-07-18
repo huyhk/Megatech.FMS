@@ -27,6 +27,10 @@ namespace Megatech.FMS.WebAPI.Controllers
 
                 if (ModelState.IsValid)
                 {
+                    //Logger.AppendLog("BM2505", JsonConvert.SerializeObject(model), "bm2505");
+                    if (model.ContainerId == 0)
+                        model.ContainerId = null;
+
                     var entity = db.BM2505s.FirstOrDefault(bm => bm.Id == model.Id);
                     if (entity == null && model.Id > 0)
                         return NotFound();

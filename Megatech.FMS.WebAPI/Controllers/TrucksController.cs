@@ -66,7 +66,12 @@ namespace Megatech.FMS.WebAPI.Controllers
                     TankNo = truckfuel.TankNo,
                     TicketNo = truckfuel.TicketNo,
                     MaintenanceStaff = truckfuel.MaintenanceStaff,
-                    IsDeleted = truckfuel.IsDeleted
+                    IsDeleted = truckfuel.IsDeleted,
+                    StartTime = truckfuel.StartTime,
+                    EndTime = truckfuel.EndTime,
+                    TestEndTime = truckfuel.TestEndTime,
+                    TestStartTime = truckfuel.TestStartTime,
+                    TestResult = truckfuel.TestResult,
                 };
 
                 db.TruckFuels.Add(model);
@@ -84,7 +89,11 @@ namespace Megatech.FMS.WebAPI.Controllers
                 model.MaintenanceStaff = truckfuel.MaintenanceStaff;
                 model.DateUpdated = DateTime.Now;
                 model.UserUpdatedId = user.Id;
-
+                model.TestResult = truckfuel.TestResult;
+                model.TestStartTime = truckfuel.TestStartTime;
+                model.TestEndTime = truckfuel.TestEndTime;
+                model.StartTime =  truckfuel.StartTime;
+                model.EndTime = truckfuel.EndTime;
                 model.IsDeleted = truckfuel.IsDeleted;
                 if (model.IsDeleted)
                     model.UserDeletedId = user.Id;
@@ -273,7 +282,12 @@ namespace Megatech.FMS.WebAPI.Controllers
                     TankNo = tf.TankNo,
                     TicketNo = tf.TicketNo,
                     MaintenanceStaff = tf.MaintenanceStaff,
-                    IsDeleted = tf.IsDeleted
+                    IsDeleted = tf.IsDeleted,
+                    TestResult = tf.CheckResults == 1,
+                    TestStartTime = tf.StartTimeCheck,
+                    TestEndTime = tf.EndTimeCheck,
+                    StartTime = tf.StartTime,
+                    EndTime = tf.EndTime,
 
                 }).ToList();
             return Ok(list);

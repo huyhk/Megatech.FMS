@@ -245,5 +245,6 @@ namespace Megatech.FMS.WebAPI.Models
 
         public bool HasReview { get; set; }
         public string FlightUniqueId { get; set; } = Guid.NewGuid().ToString();
+        public decimal? WaterSensor { get; internal set; }
     }
 }
